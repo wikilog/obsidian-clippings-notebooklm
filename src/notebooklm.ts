@@ -224,6 +224,7 @@ export class NotebookLMClient {
 			throw new Error("노트북 생성 실패: " + execDetail(error));
 		}
 
+		let exportedPdfPath: string | null = null;
 		try {
 			// 2. 소스 추가
 			const truncated = content.length > 30000
@@ -256,6 +257,7 @@ export class NotebookLMClient {
 					? await pdfProvider()
 					: await this.convertMarkdownToPdf(title, truncated);
 				if (tmpPdfPath) {
+					exportedPdfPath = tmpPdfPath;
 					try {
 						await execFileAsync(
 							path, ["source", "add", notebookId, "--file", tmpPdfPath],
@@ -266,8 +268,6 @@ export class NotebookLMClient {
 						await new Promise(r => setTimeout(r, 60000));
 					} catch (pdfErr) {
 						onProgress?.("↳ PDF 업로드 실패: " + execDetail(pdfErr) + "\n→ 텍스트 파일로 전환");
-					} finally {
-						unlink(tmpPdfPath).catch(() => {});
 					}
 				} else {
 					onProgress?.("↳ PDF 변환 불가 → 텍스트로 전환");
@@ -394,6 +394,8 @@ export class NotebookLMClient {
 			// 노트북 정리 — 실패해도 무시
 			execFileAsync(path, ["notebook", "delete", notebookId], { timeout: 10000 })
 				.catch(() => {});
+			// PDF 정리 — 모든 작업 완료 후 삭제
+			if (exportedPdfPath) unlink(exportedPdfPath).catch(() => {});
 		}
 	}
 

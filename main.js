@@ -241,6 +241,7 @@ var NotebookLMClient = class {
     } catch (error) {
       throw new Error("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
     }
+    let exportedPdfPath = null;
     try {
       const truncated = content.length > 3e4 ? content.slice(0, 3e4) + "\n...(\uB0B4\uC6A9 \uC0DD\uB7B5)" : content;
       let sourceAdded = false;
@@ -265,6 +266,7 @@ var NotebookLMClient = class {
         onProgress?.("2b/5  PDF \uBCC0\uD658 \uC911...\n(Obsidian \uB0B4\uBCF4\uB0B4\uAE30 \u2014 \uCD5C\uB300 30\uCD08 \uC18C\uC694)");
         const tmpPdfPath = pdfProvider ? await pdfProvider() : await this.convertMarkdownToPdf(title, truncated);
         if (tmpPdfPath) {
+          exportedPdfPath = tmpPdfPath;
           try {
             await execFileAsync(
               path,
@@ -276,9 +278,6 @@ var NotebookLMClient = class {
             await new Promise((r) => setTimeout(r, 6e4));
           } catch (pdfErr) {
             onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC2E4\uD328: " + execDetail(pdfErr) + "\n\u2192 \uD14D\uC2A4\uD2B8 \uD30C\uC77C\uB85C \uC804\uD658");
-          } finally {
-            (0, import_promises.unlink)(tmpPdfPath).catch(() => {
-            });
           }
         } else {
           onProgress?.("\u21B3 PDF \uBCC0\uD658 \uBD88\uAC00 \u2192 \uD14D\uC2A4\uD2B8\uB85C \uC804\uD658");
@@ -408,6 +407,8 @@ var NotebookLMClient = class {
       return { summary, pptxBuffer, mode };
     } finally {
       execFileAsync(path, ["notebook", "delete", notebookId], { timeout: 1e4 }).catch(() => {
+      });
+      if (exportedPdfPath) (0, import_promises.unlink)(exportedPdfPath).catch(() => {
       });
     }
   }
