@@ -221,13 +221,14 @@ export class NotebookLMClient {
 
 		try {
 			// 2. 소스 추가
-			// URL이 있으면 --url 우선 시도, 실패 시 --text로 폴백
-			onProgress?.("2/5  소스 업로드 중...\n(NotebookLM AI 인덱싱 — 최대 1분 소요)");
 			const truncated = content.length > 30000
 				? content.slice(0, 30000) + "\n...(내용 생략)"
 				: content;
 			let sourceAdded = false;
+
+			// 2a. URL 소스 시도
 			if (sourceUrl) {
+				onProgress?.("2/5  URL 소스 업로드 중...\n(NotebookLM AI 인덱싱 — 최대 1분 소요)");
 				try {
 					await execFileAsync(
 						path, ["source", "add", notebookId, "--url", sourceUrl, "--wait"],
@@ -235,12 +236,15 @@ export class NotebookLMClient {
 					);
 					sourceAdded = true;
 				} catch {
-					// URL 크롤링 실패 — PDF 변환으로 전환
+					onProgress?.("↳ URL 크롤링 실패 → PDF 변환으로 전환");
 				}
+			} else {
+				onProgress?.("2/5  소스 업로드 준비 중...\n(URL 없음 → PDF 변환 시도)");
 			}
+
+			// 2b. PDF 변환 후 --file 시도
 			if (!sourceAdded) {
-				// 2단계: Obsidian PDF 내보내기 또는 내부 변환 후 --file 시도
-				onProgress?.("2b/5  PDF 변환 중...");
+				onProgress?.("2b/5  PDF 변환 중...\n(Obsidian 내보내기 — 최대 30초 소요)");
 				const tmpPdfPath = pdfProvider
 					? await pdfProvider()
 					: await this.convertMarkdownToPdf(title, truncated);
@@ -252,17 +256,25 @@ export class NotebookLMClient {
 						);
 						sourceAdded = true;
 					} catch {
-						// PDF 업로드 실패 — 다음 단계로
+						onProgress?.("↳ PDF 업로드 실패 → 텍스트로 전환");
 					} finally {
 						unlink(tmpPdfPath).catch(() => {});
 					}
+				} else {
+					onProgress?.("↳ PDF 변환 불가 → 텍스트로 전환");
 				}
 			}
+
+			// 2c. 마크다운 정제 후 --text 전달 (최종 폴백)
 			if (!sourceAdded) {
-				// 3단계: --text 직접 전달 (최종 폴백)
+				onProgress?.("2c/5  텍스트 소스 추가 중...\n(마크다운 정제 후 업로드)");
+				const cleanedText = this.cleanTextForSource(truncated);
+				if (!cleanedText) {
+					throw new Error("소스 추가 실패: 노트 본문이 비어 있습니다.");
+				}
 				try {
 					await execFileAsync(
-						path, ["source", "add", notebookId, "--text", truncated, "--wait"],
+						path, ["source", "add", notebookId, "--text", cleanedText, "--wait"],
 						{ timeout: 120000 }
 					);
 				} catch (error) {
@@ -417,6 +429,25 @@ export class NotebookLMClient {
 		}
 
 		return null; // PDF 변환 불가 — .txt 폴백 사용
+	}
+
+	/** NotebookLM --text 소스 추가를 위해 마크다운 문법을 제거하고 순수 텍스트로 정제 */
+	private cleanTextForSource(text: string): string {
+		return text
+			.replace(/!\[.*?\]\(.*?\)/g, "")             // 이미지 제거
+			.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")    // 링크 → 텍스트
+			.replace(/^#{1,6}\s+/gm, "")                   // 헤더 마크 제거
+			.replace(/\*\*([^*]+)\*\*/g, "$1")           // 볼드 → 텍스트
+			.replace(/\*([^*]+)\*/g, "$1")                 // 이탤릭 → 텍스트
+			.replace(/`{3}[\s\S]*?`{3}/g, "")              // 코드 블록 제거
+			.replace(/`[^`]+`/g, "")                         // 인라인 코드 제거
+			.replace(/^\s*\|.*\|\s*$/gm, "")             // 테이블 행 제거
+			.replace(/^\s*[-|:=]{3,}\s*$/gm, "")           // 테이블 구분선 제거
+			.replace(/^\s*[-*+]\s+/gm, "")                 // 리스트 마커 제거
+			.replace(/^\s*\d+\.\s+/gm, "")               // 번호 리스트 마커 제거
+			.replace(/^>\s*/gm, "")                         // 인용구 마커 제거
+			.replace(/\n{3,}/g, "\n\n")                   // 연속 빈줄 정리
+			.trim();
 	}
 
 	private extractId(output: string): string {
