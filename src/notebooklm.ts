@@ -373,7 +373,7 @@ export class NotebookLMClient {
 			}
 
 			// 4. 슬라이드 생성 시작 (NotebookLM Studio — 비동기, 최대 3회 재시도)
-			onProgress?.("4/5  슬라이드 생성 시작 중...\n(5분마다 상태 확인, 최대 10분 대기)");
+			onProgress?.("4/5  슬라이드 생성 시작 중...\n(5분마다 상태 확인, 최대 15분 대기)");
 			let artifactId: string;
 			{
 				const maxRetries = 3;

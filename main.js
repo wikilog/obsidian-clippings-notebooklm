@@ -369,7 +369,7 @@ var NotebookLMClient = class {
         onProgress?.("\u21B3 \uC694\uC57D \uC2E4\uD328: " + execDetail(describeErr));
         summary = "\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
       }
-      onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(5\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 10\uBD84 \uB300\uAE30)");
+      onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(5\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 15\uBD84 \uB300\uAE30)");
       let artifactId;
       {
         const maxRetries = 3;

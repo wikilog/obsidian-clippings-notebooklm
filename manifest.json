@@ -1,7 +1,7 @@
 {
 	"id": "clippings-notebooklm",
 	"name": "Clippings NotebookLM",
-	"version": "0.7.7",
+	"version": "0.7.8",
 	"minAppVersion": "1.4.0",
 	"description": "Generate PPT presentations from Clippings notes using NotebookLM AI with 3 report modes.",
 	"author": "jun",
