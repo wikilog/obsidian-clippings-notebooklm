@@ -178,7 +178,8 @@ export class NotebookLMClient {
 		mode: ReportMode,
 		removeBranding: boolean = true,
 		sourceUrl?: string,
-		onProgress?: (message: string) => void
+		onProgress?: (message: string) => void,
+		pdfProvider?: () => Promise<string | null>
 	): Promise<NotebookLMResult> {
 		const path = await this.getPath();
 
@@ -234,12 +235,15 @@ export class NotebookLMClient {
 					);
 					sourceAdded = true;
 				} catch {
-					// URL 크롤링 실패 — text로 폴백
+					// URL 크롤링 실패 — PDF 변환으로 전환
 				}
 			}
 			if (!sourceAdded) {
-				// 2단계: MD → PDF 변환 후 --file 시도
-				const tmpPdfPath = await this.convertMarkdownToPdf(title, truncated);
+				// 2단계: Obsidian PDF 내보내기 또는 내부 변환 후 --file 시도
+				onProgress?.("2b/5  PDF 변환 중...");
+				const tmpPdfPath = pdfProvider
+					? await pdfProvider()
+					: await this.convertMarkdownToPdf(title, truncated);
 				if (tmpPdfPath) {
 					try {
 						await execFileAsync(
@@ -255,18 +259,14 @@ export class NotebookLMClient {
 				}
 			}
 			if (!sourceAdded) {
-				// 3단계: .md 파일로 --file 시도
-				const tmpMdPath = join(tmpdir(), `nlm-src-${Date.now()}.md`);
+				// 3단계: --text 직접 전달 (최종 폴백)
 				try {
-					await writeFile(tmpMdPath, truncated, "utf-8");
 					await execFileAsync(
-						path, ["source", "add", notebookId, "--file", tmpMdPath, "--wait"],
+						path, ["source", "add", notebookId, "--text", truncated, "--wait"],
 						{ timeout: 120000 }
 					);
 				} catch (error) {
 					throw new Error("소스 추가 실패: " + execDetail(error));
-				} finally {
-					unlink(tmpMdPath).catch(() => {});
 				}
 			}
 

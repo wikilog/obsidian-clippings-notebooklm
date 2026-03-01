@@ -179,26 +179,29 @@ export class ClippingsSidebarView extends ItemView {
 				}
 			}
 
-			// 오류 메시지 + 복사 버튼
-			if (item.status === "error" && item.errorMsg) {
-				const errWrap = card.createEl("div", { cls: "clippings-sidebar-card-error-wrap" });
-				errWrap.createEl("div", {
-					cls: "clippings-sidebar-card-error",
-					text: item.errorMsg,
-				});
-				const copyBtn = errWrap.createEl("button", {
+			// 복사 버튼 (error일 때 로그 아래에 독립 배치)
+			if (item.status === "error") {
+				const copyBtn = card.createEl("button", {
 					cls: "clippings-sidebar-card-copy-btn",
-					text: "복사",
+					text: "로그 복사",
 				});
 				copyBtn.addEventListener("click", () => {
 					const logText = (item.log ?? []).join("\n");
 					const full = logText
-						? logText + "\n" + item.errorMsg
+						? logText + "\n" + (item.errorMsg ?? "")
 						: item.errorMsg ?? "";
 					navigator.clipboard.writeText(full).then(() => {
-						copyBtn.textContent = "✓";
-						setTimeout(() => { copyBtn.textContent = "복사"; }, 2000);
+						copyBtn.textContent = "✓ 복사됨";
+						setTimeout(() => { copyBtn.textContent = "로그 복사"; }, 2000);
 					});
+				});
+			}
+
+			// 오류 메시지 (빨간 텍스트)
+			if (item.status === "error" && item.errorMsg) {
+				card.createEl("div", {
+					cls: "clippings-sidebar-card-error",
+					text: item.errorMsg,
 				});
 			}
 

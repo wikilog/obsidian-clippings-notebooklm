@@ -23,6 +23,9 @@ __export(main_exports, {
 });
 module.exports = __toCommonJS(main_exports);
 var import_obsidian5 = require("obsidian");
+var import_promises2 = require("fs/promises");
+var import_path2 = require("path");
+var import_os2 = require("os");
 
 // src/notebooklm.ts
 var import_obsidian = require("obsidian");
@@ -206,7 +209,7 @@ var NotebookLMClient = class {
       return false;
     }
   }
-  async generateContent(title, content, mode, removeBranding = true, sourceUrl, onProgress) {
+  async generateContent(title, content, mode, removeBranding = true, sourceUrl, onProgress, pdfProvider) {
     const path = await this.getPath();
     const installed = await this.isInstalled();
     if (!installed) {
@@ -250,7 +253,8 @@ var NotebookLMClient = class {
         }
       }
       if (!sourceAdded) {
-        const tmpPdfPath = await this.convertMarkdownToPdf(title, truncated);
+        onProgress?.("2b/5  PDF \uBCC0\uD658 \uC911...");
+        const tmpPdfPath = pdfProvider ? await pdfProvider() : await this.convertMarkdownToPdf(title, truncated);
         if (tmpPdfPath) {
           try {
             await execFileAsync(
@@ -267,19 +271,14 @@ var NotebookLMClient = class {
         }
       }
       if (!sourceAdded) {
-        const tmpMdPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-src-${Date.now()}.md`);
         try {
-          await (0, import_promises.writeFile)(tmpMdPath, truncated, "utf-8");
           await execFileAsync(
             path,
-            ["source", "add", notebookId, "--file", tmpMdPath, "--wait"],
+            ["source", "add", notebookId, "--text", truncated, "--wait"],
             { timeout: 12e4 }
           );
         } catch (error) {
           throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + execDetail(error));
-        } finally {
-          (0, import_promises.unlink)(tmpMdPath).catch(() => {
-          });
         }
       }
       onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uC751\uB2F5 \uB300\uAE30 \u2014 \uCD5C\uB300 2\uBD84 \uC18C\uC694)");
@@ -730,25 +729,26 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
           });
         }
       }
-      if (item.status === "error" && item.errorMsg) {
-        const errWrap = card.createEl("div", { cls: "clippings-sidebar-card-error-wrap" });
-        errWrap.createEl("div", {
-          cls: "clippings-sidebar-card-error",
-          text: item.errorMsg
-        });
-        const copyBtn = errWrap.createEl("button", {
+      if (item.status === "error") {
+        const copyBtn = card.createEl("button", {
           cls: "clippings-sidebar-card-copy-btn",
-          text: "\uBCF5\uC0AC"
+          text: "\uB85C\uADF8 \uBCF5\uC0AC"
         });
         copyBtn.addEventListener("click", () => {
           const logText = (item.log ?? []).join("\n");
-          const full = logText ? logText + "\n" + item.errorMsg : item.errorMsg ?? "";
+          const full = logText ? logText + "\n" + (item.errorMsg ?? "") : item.errorMsg ?? "";
           navigator.clipboard.writeText(full).then(() => {
-            copyBtn.textContent = "\u2713";
+            copyBtn.textContent = "\u2713 \uBCF5\uC0AC\uB428";
             setTimeout(() => {
-              copyBtn.textContent = "\uBCF5\uC0AC";
+              copyBtn.textContent = "\uB85C\uADF8 \uBCF5\uC0AC";
             }, 2e3);
           });
+        });
+      }
+      if (item.status === "error" && item.errorMsg) {
+        card.createEl("div", {
+          cls: "clippings-sidebar-card-error",
+          text: item.errorMsg
         });
       }
       if (item.status === "success" && item.pptPath) {
@@ -873,7 +873,8 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
           historyItem.log = historyItem.log ?? [];
           historyItem.log.push(step.split("\n")[0]);
           this.refreshSidebar();
-        }
+        },
+        () => this.exportFileToPdf(file)
       );
       const outputFolder = `${this.settings.clippingsFolder}/${this.settings.outputSubfolder}`;
       const pptFileName = `${file.basename}.pptx`;
@@ -902,15 +903,58 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
       const rawMsg = String(error);
       historyItem.status = "error";
       historyItem.errorMsg = this.classifyError(rawMsg);
-      historyItem.log?.push("\u2717 \uC624\uB958: " + rawMsg.split("\n")[0]);
-      if (rawMsg.includes("\n")) {
-        historyItem.log?.push(rawMsg.split("\n")[1]?.trim() ?? "");
-      }
+      historyItem.log?.push("\u2717 \uC624\uB958: " + rawMsg);
       this.refreshSidebar();
       console.error("[Clippings NotebookLM] PPT \uC0DD\uC131 \uC624\uB958:", error);
     } finally {
       this.isRunning = false;
     }
+  }
+  /**
+   * Obsidian 내장 "PDF로 내보내기" 명령을 트리거하여 임시 PDF 파일 경로를 반환한다.
+   * Electron remote 모듈이 없거나 내보내기 실패 시 null 반환.
+   */
+  async exportFileToPdf(file) {
+    const tmpPdfPath = (0, import_path2.join)((0, import_os2.tmpdir)(), `nlm-src-${Date.now()}.pdf`);
+    try {
+      const leaf = this.app.workspace.getLeaf(false);
+      await leaf.openFile(file);
+      let remote = null;
+      for (const mod of ["@electron/remote", "electron"]) {
+        try {
+          const m = globalThis.require?.(mod);
+          const r = mod === "electron" ? m?.remote : m;
+          if (r?.dialog) {
+            remote = r;
+            break;
+          }
+        } catch {
+        }
+      }
+      if (!remote) return null;
+      const dialog = remote.dialog;
+      const origSync = dialog.showSaveDialogSync;
+      const origAsync = dialog.showSaveDialog;
+      dialog.showSaveDialogSync = () => tmpPdfPath;
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath: tmpPdfPath });
+      try {
+        this.app.commands.executeCommandById("workspace:export-pdf");
+        const deadline = Date.now() + 3e4;
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 500));
+          try {
+            await (0, import_promises2.access)(tmpPdfPath, import_promises2.constants.F_OK);
+            return tmpPdfPath;
+          } catch {
+          }
+        }
+      } finally {
+        dialog.showSaveDialogSync = origSync;
+        dialog.showSaveDialog = origAsync;
+      }
+    } catch {
+    }
+    return null;
   }
   classifyError(msg) {
     if (msg.includes("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328")) {

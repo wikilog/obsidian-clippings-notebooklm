@@ -1,4 +1,7 @@
 import { Plugin, TFile, MarkdownView, addIcon } from "obsidian";
+import { access, constants } from "fs/promises";
+import { join } from "path";
+import { tmpdir } from "os";
 
 const NOTEBOOKLM_ICON_ID = "notebooklm";
 const NOTEBOOKLM_ICON_SVG = `
@@ -131,7 +134,8 @@ export default class ClippingsPptPlugin extends Plugin {
 					historyItem.log = historyItem.log ?? [];
 					historyItem.log.push(step.split("\n")[0]);
 					this.refreshSidebar();
-				}
+				},
+				() => this.exportFileToPdf(file)
 			);
 
 			// 출력 경로: Clippings/PDF/
@@ -167,16 +171,60 @@ export default class ClippingsPptPlugin extends Plugin {
 			const rawMsg = String(error);
 			historyItem.status = "error";
 			historyItem.errorMsg = this.classifyError(rawMsg);
-			// 원시 에러를 로그에 기록 (디버깅용)
-			historyItem.log?.push("✗ 오류: " + rawMsg.split("\n")[0]);
-			if (rawMsg.includes("\n")) {
-				historyItem.log?.push(rawMsg.split("\n")[1]?.trim() ?? "");
-			}
+			// 원시 에러 전체를 로그에 기록 (pre-wrap으로 줄바꿈 표시)
+			historyItem.log?.push("✗ 오류: " + rawMsg);
 			this.refreshSidebar();
 			console.error("[Clippings NotebookLM] PPT 생성 오류:", error);
 		} finally {
 			this.isRunning = false;
 		}
+	}
+
+	/**
+	 * Obsidian 내장 "PDF로 내보내기" 명령을 트리거하여 임시 PDF 파일 경로를 반환한다.
+	 * Electron remote 모듈이 없거나 내보내기 실패 시 null 반환.
+	 */
+	private async exportFileToPdf(file: TFile): Promise<string | null> {
+		const tmpPdfPath = join(tmpdir(), `nlm-src-${Date.now()}.pdf`);
+		try {
+			// 파일을 활성 리프에서 열기
+			const leaf = this.app.workspace.getLeaf(false);
+			await leaf.openFile(file);
+
+			// Electron remote를 통해 save dialog를 임시 경로로 패치
+			let remote: Record<string, unknown> | null = null;
+			for (const mod of ["@electron/remote", "electron"]) {
+				try {
+					const m = (globalThis as any).require?.(mod);
+					const r = mod === "electron" ? (m as any)?.remote : m;
+					if ((r as any)?.dialog) { remote = r as Record<string, unknown>; break; }
+				} catch { /* 모듈 없음 */ }
+			}
+			if (!remote) return null;
+
+			const dialog = (remote as any).dialog;
+			const origSync = dialog.showSaveDialogSync;
+			const origAsync = dialog.showSaveDialog;
+			dialog.showSaveDialogSync = () => tmpPdfPath;
+			dialog.showSaveDialog = async () => ({ canceled: false, filePath: tmpPdfPath });
+
+			try {
+				(this.app as any).commands.executeCommandById("workspace:export-pdf");
+				// PDF 파일이 생성될 때까지 폴링 (최대 30초)
+				const deadline = Date.now() + 30000;
+				while (Date.now() < deadline) {
+					await new Promise(r => setTimeout(r, 500));
+					try {
+						await access(tmpPdfPath, constants.F_OK);
+						return tmpPdfPath; // 파일 생성 확인
+					} catch { /* 아직 없음 */ }
+				}
+			} finally {
+				dialog.showSaveDialogSync = origSync;
+				dialog.showSaveDialog = origAsync;
+			}
+		} catch { /* Electron API 없음 또는 실패 */ }
+		return null;
 	}
 
 	private classifyError(msg: string): string {
