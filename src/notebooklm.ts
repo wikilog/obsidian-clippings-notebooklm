@@ -240,6 +240,9 @@ export class NotebookLMClient {
 
 		const modeConfig = MODES[mode];
 
+		// 브라우저/시스템 언어 감지 (예: "ko-KR" → "ko")
+		const lang = (typeof navigator !== "undefined" ? navigator.language?.split("-")[0] : null) ?? "ko";
+
 		// 1. 노트북 생성
 		onProgress?.("1/5  노트북 생성 중...");
 		// 옵시디언 title 속성을 노트북 이름으로 사용 (특수문자 제거, 80자 제한)
@@ -354,22 +357,32 @@ export class NotebookLMClient {
 
 			// 3. 노트북 개요 가져오기 (NotebookLM 자동 생성 요약)
 			onProgress?.("3/5  AI 요약 생성 중...\n(NotebookLM 노트북 개요 — 최대 30초 소요)");
-			let summary: string;
-			try {
-				const { stdout } = await execFileAsync(
-					path, ["notebook", "describe", notebookId, "--json"],
-					{ timeout: 60000 }
-				);
+			const parseSummary = (stdout: string): string => {
 				try {
 					const parsed = JSON.parse(stdout.trim()) as { value?: { summary?: string[] } };
 					const lines: string[] = parsed?.value?.summary ?? [];
-					summary = lines.join("\n\n").trim() || stdout.trim();
-				} catch {
-					summary = stdout.trim();
+					return lines.join("\n\n").trim() || stdout.trim();
+				} catch { return stdout.trim(); }
+			};
+			let summary: string;
+			try {
+				// 언어 옵션 지원 시 우선 사용, 미지원 시 옵션 없이 재시도
+				const { stdout } = await execFileAsync(
+					path, ["notebook", "describe", notebookId, "--json", "--language", lang],
+					{ timeout: 60000 }
+				);
+				summary = parseSummary(stdout);
+			} catch {
+				try {
+					const { stdout } = await execFileAsync(
+						path, ["notebook", "describe", notebookId, "--json"],
+						{ timeout: 60000 }
+					);
+					summary = parseSummary(stdout);
+				} catch (describeErr) {
+					onProgress?.("↳ 요약 실패: " + execDetail(describeErr));
+					summary = "요약을 생성할 수 없습니다.";
 				}
-			} catch (describeErr) {
-				onProgress?.("↳ 요약 실패: " + execDetail(describeErr));
-				summary = "요약을 생성할 수 없습니다.";
 			}
 
 			// 4. 슬라이드 생성 및 완료 대기 (NotebookLM Studio — 최대 3회 재시도)
@@ -390,7 +403,7 @@ export class NotebookLMClient {
 								"--format", modeConfig.slidesFormat,
 								"--length", modeConfig.slidesLength,
 								"--focus", modeConfig.focusPrompt,
-								"--language", "ko",
+								"--language", lang,
 								"--confirm",
 							],
 							{ timeout: 60000 }

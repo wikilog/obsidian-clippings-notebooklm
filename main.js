@@ -255,6 +255,7 @@ var NotebookLMClient = class {
       );
     }
     const modeConfig = MODES[mode];
+    const lang = (typeof navigator !== "undefined" ? navigator.language?.split("-")[0] : null) ?? "ko";
     onProgress?.("1/5  \uB178\uD2B8\uBD81 \uC0DD\uC131 \uC911...");
     const notebookName = title.replace(/[^\w\s가-힣\-_.]/g, "").trim().slice(0, 80) || `ppt-${Date.now()}`;
     let notebookId;
@@ -351,23 +352,35 @@ var NotebookLMClient = class {
         }
       }
       onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uB178\uD2B8\uBD81 \uAC1C\uC694 \u2014 \uCD5C\uB300 30\uCD08 \uC18C\uC694)");
+      const parseSummary = (stdout) => {
+        try {
+          const parsed = JSON.parse(stdout.trim());
+          const lines = parsed?.value?.summary ?? [];
+          return lines.join("\n\n").trim() || stdout.trim();
+        } catch {
+          return stdout.trim();
+        }
+      };
       let summary;
       try {
         const { stdout } = await execFileAsync(
           path,
-          ["notebook", "describe", notebookId, "--json"],
+          ["notebook", "describe", notebookId, "--json", "--language", lang],
           { timeout: 6e4 }
         );
+        summary = parseSummary(stdout);
+      } catch {
         try {
-          const parsed = JSON.parse(stdout.trim());
-          const lines = parsed?.value?.summary ?? [];
-          summary = lines.join("\n\n").trim() || stdout.trim();
-        } catch {
-          summary = stdout.trim();
+          const { stdout } = await execFileAsync(
+            path,
+            ["notebook", "describe", notebookId, "--json"],
+            { timeout: 6e4 }
+          );
+          summary = parseSummary(stdout);
+        } catch (describeErr) {
+          onProgress?.("\u21B3 \uC694\uC57D \uC2E4\uD328: " + execDetail(describeErr));
+          summary = "\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
         }
-      } catch (describeErr) {
-        onProgress?.("\u21B3 \uC694\uC57D \uC2E4\uD328: " + execDetail(describeErr));
-        summary = "\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
       }
       onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(1\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 20\uBD84 \uB300\uAE30)");
       let artifactId = "";
@@ -393,7 +406,7 @@ var NotebookLMClient = class {
                 "--focus",
                 modeConfig.focusPrompt,
                 "--language",
-                "ko",
+                lang,
                 "--confirm"
               ],
               { timeout: 6e4 }
