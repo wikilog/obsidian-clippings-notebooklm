@@ -179,11 +179,26 @@ export class ClippingsSidebarView extends ItemView {
 				}
 			}
 
-			// 오류 메시지
+			// 오류 메시지 + 복사 버튼
 			if (item.status === "error" && item.errorMsg) {
-				card.createEl("div", {
+				const errWrap = card.createEl("div", { cls: "clippings-sidebar-card-error-wrap" });
+				errWrap.createEl("div", {
 					cls: "clippings-sidebar-card-error",
 					text: item.errorMsg,
+				});
+				const copyBtn = errWrap.createEl("button", {
+					cls: "clippings-sidebar-card-copy-btn",
+					text: "복사",
+				});
+				copyBtn.addEventListener("click", () => {
+					const logText = (item.log ?? []).join("\n");
+					const full = logText
+						? logText + "\n" + item.errorMsg
+						: item.errorMsg ?? "";
+					navigator.clipboard.writeText(full).then(() => {
+						copyBtn.textContent = "✓";
+						setTimeout(() => { copyBtn.textContent = "복사"; }, 2000);
+					});
 				});
 			}
 

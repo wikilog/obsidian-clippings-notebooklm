@@ -229,8 +229,8 @@ export class NotebookLMClient {
 			if (sourceUrl) {
 				try {
 					await execFileAsync(
-						path, ["source", "add", notebookId, "--url", sourceUrl],
-						{ timeout: 60000 }
+						path, ["source", "add", notebookId, "--url", sourceUrl, "--wait"],
+						{ timeout: 120000 }
 					);
 					sourceAdded = true;
 				} catch {
@@ -240,8 +240,8 @@ export class NotebookLMClient {
 			if (!sourceAdded) {
 				try {
 					await execFileAsync(
-						path, ["source", "add", notebookId, "--text", truncated],
-						{ timeout: 60000 }
+						path, ["source", "add", notebookId, "--text", truncated, "--wait"],
+						{ timeout: 120000 }
 					);
 				} catch (error) {
 					throw new Error("소스 추가 실패: " + execDetail(error));

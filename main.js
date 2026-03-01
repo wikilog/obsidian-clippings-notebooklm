@@ -242,8 +242,8 @@ var NotebookLMClient = class {
         try {
           await execFileAsync(
             path,
-            ["source", "add", notebookId, "--url", sourceUrl],
-            { timeout: 6e4 }
+            ["source", "add", notebookId, "--url", sourceUrl, "--wait"],
+            { timeout: 12e4 }
           );
           sourceAdded = true;
         } catch {
@@ -253,8 +253,8 @@ var NotebookLMClient = class {
         try {
           await execFileAsync(
             path,
-            ["source", "add", notebookId, "--text", truncated],
-            { timeout: 6e4 }
+            ["source", "add", notebookId, "--text", truncated, "--wait"],
+            { timeout: 12e4 }
           );
         } catch (error) {
           throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + execDetail(error));
@@ -653,9 +653,24 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
         }
       }
       if (item.status === "error" && item.errorMsg) {
-        card.createEl("div", {
+        const errWrap = card.createEl("div", { cls: "clippings-sidebar-card-error-wrap" });
+        errWrap.createEl("div", {
           cls: "clippings-sidebar-card-error",
           text: item.errorMsg
+        });
+        const copyBtn = errWrap.createEl("button", {
+          cls: "clippings-sidebar-card-copy-btn",
+          text: "\uBCF5\uC0AC"
+        });
+        copyBtn.addEventListener("click", () => {
+          const logText = (item.log ?? []).join("\n");
+          const full = logText ? logText + "\n" + item.errorMsg : item.errorMsg ?? "";
+          navigator.clipboard.writeText(full).then(() => {
+            copyBtn.textContent = "\u2713";
+            setTimeout(() => {
+              copyBtn.textContent = "\uBCF5\uC0AC";
+            }, 2e3);
+          });
         });
       }
       if (item.status === "success" && item.pptPath) {
