@@ -211,7 +211,12 @@ export class NotebookLMClient {
 
 		// 1. 노트북 생성
 		onProgress?.("1/5  노트북 생성 중...");
-		const notebookName = `ppt-${Date.now()}`;
+		// 옵시디언 title 속성을 노트북 이름으로 사용 (특수문자 제거, 80자 제한)
+		const notebookName = title
+			.replace(/[^\w\s가-힣\-_.]/g, "")
+			.trim()
+			.slice(0, 80)
+			|| `ppt-${Date.now()}`;
 		let notebookId: string;
 
 		try {

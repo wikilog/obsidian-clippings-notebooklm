@@ -229,7 +229,7 @@ var NotebookLMClient = class {
     }
     const modeConfig = MODES[mode];
     onProgress?.("1/5  \uB178\uD2B8\uBD81 \uC0DD\uC131 \uC911...");
-    const notebookName = `ppt-${Date.now()}`;
+    const notebookName = title.replace(/[^\w\s가-힣\-_.]/g, "").trim().slice(0, 80) || `ppt-${Date.now()}`;
     let notebookId;
     try {
       const { stdout } = await execFileAsync(
