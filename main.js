@@ -895,7 +895,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       cardMeta.createEl("span", { text: this.formatDate(item.date) });
       if (item.log && item.log.length > 0) {
         const logEl = card.createEl("div", { cls: "clippings-sidebar-card-log" });
-        const entries = item.status === "error" ? item.log : item.status === "success" ? item.log.slice(-1) : item.log.slice(-3);
+        const entries = item.log;
         for (const entry of entries) {
           logEl.createEl("div", {
             cls: "clippings-sidebar-card-log-entry",
