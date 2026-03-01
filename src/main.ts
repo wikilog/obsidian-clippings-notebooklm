@@ -26,6 +26,9 @@ import {
 	HistoryItem,
 } from "./sidebar";
 
+const isKorean = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+const t = (ko: string, en: string): string => isKorean ? ko : en;
+
 
 export default class ClippingsPptPlugin extends Plugin {
 	settings: ClippingsPptSettings = DEFAULT_SETTINGS;
@@ -54,7 +57,7 @@ export default class ClippingsPptPlugin extends Plugin {
 		// Command Palette 커맨드
 		this.addCommand({
 			id: "generate-ppt-notebooklm",
-			name: "NotebookLM으로 PDF 만들기",
+			name: t("NotebookLM으로 PDF 만들기", "Generate PDF with NotebookLM"),
 			checkCallback: (checking: boolean) => {
 				if (this.isRunning) return false;
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -113,7 +116,7 @@ export default class ClippingsPptPlugin extends Plugin {
 			modeIcon: modeConfig.icon,
 			status: "running",
 			date: new Date(),
-			log: ["연결 중..."],
+			log: [t("연결 중...", "Connecting...")],
 		};
 		this.history.push(historyItem);
 		this.refreshSidebar();
@@ -132,7 +135,7 @@ export default class ClippingsPptPlugin extends Plugin {
 				source || undefined,
 				(step) => {
 					historyItem.log = historyItem.log ?? [];
-					const TIMER_PREFIX = "↳ 슬라이드 생성 중...";
+					const TIMER_PREFIX = t("↳ 슬라이드 생성 중...", "↳ Generating slides...");
 					const last = historyItem.log[historyItem.log.length - 1];
 					if (step.startsWith(TIMER_PREFIX) && last?.startsWith(TIMER_PREFIX)) {
 						historyItem.log[historyItem.log.length - 1] = step;
@@ -170,7 +173,7 @@ export default class ClippingsPptPlugin extends Plugin {
 			// 히스토리 성공 업데이트
 			historyItem.status = "success";
 			historyItem.pptPath = pptPath;
-			historyItem.log?.push(`✓ 완료: ${pptFileName}`);
+			historyItem.log?.push(t("✓ 완료: ", "✓ Done: ") + pptFileName);
 			this.refreshSidebar();
 		} catch (error) {
 			// 히스토리 실패 업데이트
@@ -178,7 +181,7 @@ export default class ClippingsPptPlugin extends Plugin {
 			historyItem.status = "error";
 			historyItem.errorMsg = this.classifyError(rawMsg);
 			// 원시 에러 전체를 로그에 기록 (pre-wrap으로 줄바꿈 표시)
-			historyItem.log?.push("✗ 오류: " + rawMsg);
+			historyItem.log?.push(t("✗ 오류: ", "✗ Error: ") + rawMsg);
 			this.refreshSidebar();
 			console.error("[Clippings NotebookLM] PDF 생성 오류:", error);
 		} finally {
@@ -282,17 +285,35 @@ export default class ClippingsPptPlugin extends Plugin {
 
 	private classifyError(msg: string): string {
 		if (msg.includes("소스 추가 실패")) {
-			return "📄 소스 업로드 실패.\n노트의 source URL을 확인하거나 잠시 후 다시 시도하세요.";
+			return t(
+				"📄 소스 업로드 실패.\n노트의 source URL을 확인하거나 잠시 후 다시 시도하세요.",
+				"📄 Source upload failed.\nCheck the note's source URL or try again later."
+			);
 		} else if (msg.includes("슬라이드 생성 실패")) {
-			return "🎨 슬라이드 생성 실패.\n잠시 후 다시 시도하세요.";
+			return t(
+				"🎨 슬라이드 생성 실패.\n잠시 후 다시 시도하세요.",
+				"🎨 Slide generation failed.\nPlease try again later."
+			);
 		} else if (msg.includes("다운로드 실패")) {
-			return "⬇️ PDF 다운로드 실패.\n잠시 후 다시 시도하세요.";
+			return t(
+				"⬇️ PDF 다운로드 실패.\n잠시 후 다시 시도하세요.",
+				"⬇️ PDF download failed.\nPlease try again later."
+			);
 		} else if (msg.includes("로그인") || msg.includes("login")) {
-			return "🔐 NotebookLM 로그인이 필요합니다.\n설정 → 브라우저로 로그인";
+			return t(
+				"🔐 NotebookLM 로그인이 필요합니다.\n설정 → 브라우저로 로그인",
+				"🔐 NotebookLM login required.\nSettings → Login via Browser"
+			);
 		} else if (msg.includes("찾을 수 없습니다") || msg.includes("not found") || msg.includes("ENOENT")) {
-			return "⚠️ nlm CLI를 찾을 수 없습니다.\n설정에서 경로를 확인하세요.";
+			return t(
+				"⚠️ nlm CLI를 찾을 수 없습니다.\n설정에서 경로를 확인하세요.",
+				"⚠️ nlm CLI not found.\nCheck the path in Settings."
+			);
 		}
-		return "❌ PDF 생성 실패.\n개발자 도구 콘솔(Ctrl+Shift+I)에서 자세한 오류를 확인하세요.";
+		return t(
+			"❌ PDF 생성 실패.\n개발자 도구 콘솔(Ctrl+Shift+I)에서 자세한 오류를 확인하세요.",
+			"❌ PDF generation failed.\nCheck the developer console (Ctrl+Shift+I) for details."
+		);
 	}
 
 	private async insertSummaryAndLink(

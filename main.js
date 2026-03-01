@@ -91,11 +91,18 @@ var MODES = {
 
 // src/notebooklm.ts
 var execFileAsync = (0, import_util.promisify)(import_child_process.execFile);
+var isKorean2 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+var t2 = (ko, en) => isKorean2 ? ko : en;
+var SlidePollError = class extends Error {
+  constructor(message) {
+    super(message);
+  }
+};
 function execDetail(error) {
   const e = error;
   if (e.killed === true) {
     const secs = typeof e.timeout === "number" ? Math.round(e.timeout / 1e3) : "?";
-    return `\uCC98\uB9AC \uC2DC\uAC04 \uCD08\uACFC (${secs}\uCD08 \u2014 nlm \uCC98\uB9AC \uC9C0\uC5F0)`;
+    return t2(`\uCC98\uB9AC \uC2DC\uAC04 \uCD08\uACFC (${secs}\uCD08 \u2014 nlm \uCC98\uB9AC \uC9C0\uC5F0)`, `Request timed out (${secs}s \u2014 nlm processing delay)`);
   }
   const stderr = typeof e.stderr === "string" ? e.stderr.trim() : "";
   const stdout = typeof e.stdout === "string" ? e.stdout.trim() : "";
@@ -193,7 +200,10 @@ var NotebookLMClient = class {
     const installed = await this.isInstalled();
     if (!installed) {
       new import_obsidian.Notice(
-        "nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uD130\uBBF8\uB110\uC5D0\uC11C \uBA3C\uC800 \uC124\uCE58\uD558\uC138\uC694:\n\n  uv tool install notebooklm-mcp-cli\n\n\uC124\uCE58 \uD6C4 \uC124\uC815\uC5D0\uC11C \uACBD\uB85C\uB97C \uD655\uC778\uD558\uAC70\uB098\n\uC808\uB300 \uACBD\uB85C(\uC608: /Users/you/.local/bin/nlm)\uB97C \uC9C1\uC811 \uC785\uB825\uD558\uC138\uC694.",
+        t2(
+          "nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uD130\uBBF8\uB110\uC5D0\uC11C \uBA3C\uC800 \uC124\uCE58\uD558\uC138\uC694:\n\n  uv tool install notebooklm-mcp-cli\n\n\uC124\uCE58 \uD6C4 \uC124\uC815\uC5D0\uC11C \uACBD\uB85C\uB97C \uD655\uC778\uD558\uAC70\uB098\n\uC808\uB300 \uACBD\uB85C(\uC608: /Users/you/.local/bin/nlm)\uB97C \uC9C1\uC811 \uC785\uB825\uD558\uC138\uC694.",
+          "nlm CLI not found.\nInstall it from the terminal first:\n\n  uv tool install notebooklm-mcp-cli\n\nAfter installing, check the path in settings or\nenter the full path (e.g. /Users/you/.local/bin/nlm)."
+        ),
         12e3
       );
       return false;
@@ -206,12 +216,15 @@ var NotebookLMClient = class {
       });
       proc.unref();
       new import_obsidian.Notice(
-        "\u{1F310} \uBE0C\uB77C\uC6B0\uC800\uAC00 \uC5F4\uB9BD\uB2C8\uB2E4. Google \uACC4\uC815\uC73C\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694.\n\uC644\uB8CC \uD6C4 '\uC0C1\uD0DC \uD655\uC778' \uBC84\uD2BC\uC744 \uB20C\uB7EC \uD655\uC778\uD558\uC138\uC694.",
+        t2(
+          "\u{1F310} \uBE0C\uB77C\uC6B0\uC800\uAC00 \uC5F4\uB9BD\uB2C8\uB2E4. Google \uACC4\uC815\uC73C\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694.\n\uC644\uB8CC \uD6C4 '\uC0C1\uD0DC \uD655\uC778' \uBC84\uD2BC\uC744 \uB20C\uB7EC \uD655\uC778\uD558\uC138\uC694.",
+          "\u{1F310} A browser window will open. Sign in with your Google account.\nClick 'Check Status' when done."
+        ),
         8e3
       );
       return true;
     } catch (error) {
-      new import_obsidian.Notice("\uB85C\uADF8\uC778 \uC2E4\uD589 \uC2E4\uD328: " + String(error), 8e3);
+      new import_obsidian.Notice(t2("\uB85C\uADF8\uC778 \uC2E4\uD589 \uC2E4\uD328: ", "Login failed: ") + String(error), 8e3);
       return false;
     }
   }
@@ -222,7 +235,7 @@ var NotebookLMClient = class {
   async launchAccountSwitch() {
     const installed = await this.isInstalled();
     if (!installed) {
-      new import_obsidian.Notice("nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.", 6e3);
+      new import_obsidian.Notice(t2("nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.", "nlm CLI not found."), 6e3);
       return false;
     }
     try {
@@ -233,12 +246,15 @@ var NotebookLMClient = class {
       });
       proc.unref();
       new import_obsidian.Notice(
-        "\u{1F504} \uAE30\uC874 \uACC4\uC815 \uC815\uBCF4\uB97C \uC0AD\uC81C\uD558\uACE0 \uBE0C\uB77C\uC6B0\uC800\uB97C \uC5FD\uB2C8\uB2E4.\n\uC0C8 Google \uACC4\uC815\uC73C\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694.\n\uC644\uB8CC \uD6C4 '\uC0C1\uD0DC \uD655\uC778' \uBC84\uD2BC\uC744 \uB20C\uB7EC \uD655\uC778\uD558\uC138\uC694.",
+        t2(
+          "\u{1F504} \uAE30\uC874 \uACC4\uC815 \uC815\uBCF4\uB97C \uC0AD\uC81C\uD558\uACE0 \uBE0C\uB77C\uC6B0\uC800\uB97C \uC5FD\uB2C8\uB2E4.\n\uC0C8 Google \uACC4\uC815\uC73C\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694.\n\uC644\uB8CC \uD6C4 '\uC0C1\uD0DC \uD655\uC778' \uBC84\uD2BC\uC744 \uB20C\uB7EC \uD655\uC778\uD558\uC138\uC694.",
+          "\u{1F504} Clearing saved credentials and opening a browser.\nSign in with your new Google account.\nClick 'Check Status' when done."
+        ),
         1e4
       );
       return true;
     } catch (error) {
-      new import_obsidian.Notice("\uACC4\uC815 \uBCC0\uACBD \uC2E4\uD589 \uC2E4\uD328: " + String(error), 8e3);
+      new import_obsidian.Notice(t2("\uACC4\uC815 \uBCC0\uACBD \uC2E4\uD589 \uC2E4\uD328: ", "Account switch failed: ") + String(error), 8e3);
       return false;
     }
   }
@@ -247,18 +263,24 @@ var NotebookLMClient = class {
     const installed = await this.isInstalled();
     if (!installed) {
       throw new Error(
-        "nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uD130\uBBF8\uB110\uC5D0\uC11C 'uv tool install notebooklm-mcp-cli'\uB97C \uC2E4\uD589\uD558\uAC70\uB098,\n\uC124\uC815\uC5D0\uC11C nlm \uACBD\uB85C\uB97C \uC808\uB300 \uACBD\uB85C\uB85C \uC9C0\uC815\uD558\uC138\uC694.\n\uC608: /Users/yourname/.local/bin/nlm"
+        t2(
+          "nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uD130\uBBF8\uB110\uC5D0\uC11C 'uv tool install notebooklm-mcp-cli'\uB97C \uC2E4\uD589\uD558\uAC70\uB098,\n\uC124\uC815\uC5D0\uC11C nlm \uACBD\uB85C\uB97C \uC808\uB300 \uACBD\uB85C\uB85C \uC9C0\uC815\uD558\uC138\uC694.\n\uC608: /Users/yourname/.local/bin/nlm",
+          "nlm CLI not found.\nRun 'uv tool install notebooklm-mcp-cli' in the terminal, or\nset the full path to nlm in settings.\ne.g. /Users/yourname/.local/bin/nlm"
+        )
       );
     }
     const loggedIn = await this.isLoggedIn();
     if (!loggedIn) {
       throw new Error(
-        "NotebookLM\uC5D0 \uB85C\uADF8\uC778\uB418\uC5B4 \uC788\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.\n\uC124\uC815 \uD0ED\uC5D0\uC11C '\uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778' \uBC84\uD2BC\uC744 \uD074\uB9AD\uD558\uAC70\uB098,\n\uD130\uBBF8\uB110\uC5D0\uC11C 'nlm login'\uC744 \uC2E4\uD589\uD558\uC138\uC694."
+        t2(
+          "NotebookLM\uC5D0 \uB85C\uADF8\uC778\uB418\uC5B4 \uC788\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.\n\uC124\uC815 \uD0ED\uC5D0\uC11C '\uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778' \uBC84\uD2BC\uC744 \uD074\uB9AD\uD558\uAC70\uB098,\n\uD130\uBBF8\uB110\uC5D0\uC11C 'nlm login'\uC744 \uC2E4\uD589\uD558\uC138\uC694.",
+          "Not logged in to NotebookLM.\nClick 'Login via Browser' in Settings, or\nrun 'nlm login' in the terminal."
+        )
       );
     }
     const modeConfig = MODES[mode];
     const lang = (typeof navigator !== "undefined" ? navigator.language?.split("-")[0] : null) ?? "ko";
-    onProgress?.("1/5  \uB178\uD2B8\uBD81 \uC0DD\uC131 \uC911...");
+    onProgress?.(t2("1/5  \uB178\uD2B8\uBD81 \uC0DD\uC131 \uC911...", "1/5  Creating notebook..."));
     const notebookName = title.replace(/[^\w\s가-힣\-_.]/g, "").trim().slice(0, 80) || `ppt-${Date.now()}`;
     let notebookId;
     try {
@@ -272,18 +294,18 @@ var NotebookLMClient = class {
       );
       const longIdMatch = createOut.match(/[a-zA-Z0-9_-]{20,}/);
       notebookId = uuidMatch?.[0] ?? longIdMatch?.[0] ?? notebookName;
-      onProgress?.("\u21B3 \uB178\uD2B8\uBD81 \uC0DD\uC131 \uC644\uB8CC\nID: " + notebookId + "\ncreate \uCD9C\uB825: " + (createOut.trim() || "(\uC5C6\uC74C)"));
+      onProgress?.(t2("\u21B3 \uB178\uD2B8\uBD81 \uC0DD\uC131 \uC644\uB8CC", "\u21B3 Notebook created") + "\nID: " + notebookId + "\n" + t2("create \uCD9C\uB825: ", "create output: ") + (createOut.trim() || t2("(\uC5C6\uC74C)", "(none)")));
       await new Promise((r) => setTimeout(r, 3e3));
     } catch (error) {
-      throw new Error("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
+      throw new Error(t2("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: ", "Failed to create notebook: ") + execDetail(error));
     }
     let exportedPdfPath = null;
     let uploadSucceeded = false;
     try {
-      const truncated = content.length > 3e4 ? content.slice(0, 3e4) + "\n...(\uB0B4\uC6A9 \uC0DD\uB7B5)" : content;
+      const truncated = content.length > 3e4 ? content.slice(0, 3e4) + t2("\n...(\uB0B4\uC6A9 \uC0DD\uB7B5)", "\n...(content truncated)") : content;
       let sourceAdded = false;
       if (sourceUrl) {
-        onProgress?.("2/5  URL \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC911...\n(NotebookLM AI \uC778\uB371\uC2F1 \u2014 \uCD5C\uB300 1\uBD84 \uC18C\uC694)");
+        onProgress?.(t2("2/5  URL \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC911...\n(NotebookLM AI \uC778\uB371\uC2F1 \u2014 \uCD5C\uB300 1\uBD84 \uC18C\uC694)", "2/5  Uploading URL source...\n(NotebookLM AI indexing \u2014 up to 1 min)"));
         try {
           await execFileAsync(
             path,
@@ -292,19 +314,19 @@ var NotebookLMClient = class {
           );
           sourceAdded = true;
           uploadSucceeded = true;
-          onProgress?.("\u21B3 URL \uC5C5\uB85C\uB4DC \uC644\uB8CC");
+          onProgress?.(t2("\u21B3 URL \uC5C5\uB85C\uB4DC \uC644\uB8CC", "\u21B3 URL uploaded"));
         } catch {
-          onProgress?.("\u21B3 URL \uD06C\uB864\uB9C1 \uC2E4\uD328 \u2192 PDF \uBCC0\uD658\uC73C\uB85C \uC804\uD658");
+          onProgress?.(t2("\u21B3 URL \uD06C\uB864\uB9C1 \uC2E4\uD328 \u2192 PDF \uBCC0\uD658\uC73C\uB85C \uC804\uD658", "\u21B3 URL crawl failed \u2192 switching to PDF"));
         }
       } else {
-        onProgress?.("2/5  \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC900\uBE44 \uC911...\n(URL \uC5C6\uC74C \u2192 PDF \uBCC0\uD658 \uC2DC\uB3C4)");
+        onProgress?.(t2("2/5  \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC900\uBE44 \uC911...\n(URL \uC5C6\uC74C \u2192 PDF \uBCC0\uD658 \uC2DC\uB3C4)", "2/5  Preparing source upload...\n(no URL \u2192 trying PDF conversion)"));
       }
       if (!sourceAdded) {
-        onProgress?.("2b/5  PDF \uBCC0\uD658 \uC911...\n(Obsidian \uB0B4\uBCF4\uB0B4\uAE30 \u2014 \uCD5C\uB300 30\uCD08 \uC18C\uC694)");
+        onProgress?.(t2("2b/5  PDF \uBCC0\uD658 \uC911...\n(Obsidian \uB0B4\uBCF4\uB0B4\uAE30 \u2014 \uCD5C\uB300 30\uCD08 \uC18C\uC694)", "2b/5  Converting to PDF...\n(Obsidian export \u2014 up to 30s)"));
         const tmpPdfPath = pdfProvider ? await pdfProvider() : await this.convertMarkdownToPdf(title, truncated);
         if (tmpPdfPath) {
           exportedPdfPath = tmpPdfPath;
-          onProgress?.("\u21B3 PDF \uBCC0\uD658 \uC131\uACF5: " + tmpPdfPath);
+          onProgress?.(t2("\u21B3 PDF \uBCC0\uD658 \uC131\uACF5: ", "\u21B3 PDF converted: ") + tmpPdfPath);
           try {
             await execFileAsync(
               path,
@@ -313,19 +335,19 @@ var NotebookLMClient = class {
             );
             sourceAdded = true;
             uploadSucceeded = true;
-            onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC644\uB8CC");
+            onProgress?.(t2("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC644\uB8CC", "\u21B3 PDF uploaded"));
           } catch (pdfErr) {
-            onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC2E4\uD328\n" + execDetail(pdfErr) + "\n\u2192 \uD14D\uC2A4\uD2B8 \uD30C\uC77C\uB85C \uC804\uD658");
+            onProgress?.(t2("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC2E4\uD328", "\u21B3 PDF upload failed") + "\n" + execDetail(pdfErr) + t2("\n\u2192 \uD14D\uC2A4\uD2B8 \uD30C\uC77C\uB85C \uC804\uD658", "\n\u2192 switching to text file"));
           }
         } else {
-          onProgress?.("\u21B3 PDF \uBCC0\uD658 \uBD88\uAC00 \u2192 \uD14D\uC2A4\uD2B8\uB85C \uC804\uD658");
+          onProgress?.(t2("\u21B3 PDF \uBCC0\uD658 \uBD88\uAC00 \u2192 \uD14D\uC2A4\uD2B8\uB85C \uC804\uD658", "\u21B3 PDF conversion unavailable \u2192 switching to text"));
         }
       }
       if (!sourceAdded) {
-        onProgress?.("2c/5  \uD14D\uC2A4\uD2B8 \uD30C\uC77C \uC5C5\uB85C\uB4DC \uC911...\n(\uB9C8\uD06C\uB2E4\uC6B4 \uC815\uC81C \uD6C4 .txt \uC800\uC7A5)");
+        onProgress?.(t2("2c/5  \uD14D\uC2A4\uD2B8 \uD30C\uC77C \uC5C5\uB85C\uB4DC \uC911...\n(\uB9C8\uD06C\uB2E4\uC6B4 \uC815\uC81C \uD6C4 .txt \uC800\uC7A5)", "2c/5  Uploading text file...\n(cleaned markdown \u2192 .txt)"));
         const cleanedText = this.cleanTextForSource(truncated);
         if (!cleanedText) {
-          throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: \uB178\uD2B8 \uBCF8\uBB38\uC774 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.");
+          throw new Error(t2("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: \uB178\uD2B8 \uBCF8\uBB38\uC774 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.", "Failed to add source: note body is empty."));
         }
         const tmpTxtPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-src-${Date.now()}.txt`);
         try {
@@ -335,25 +357,25 @@ var NotebookLMClient = class {
             ["source", "add", notebookId, "--file", tmpTxtPath, "--wait"],
             { timeout: 3e5 }
           );
-          onProgress?.("\u21B3 txt \uC5C5\uB85C\uB4DC \uC644\uB8CC");
+          onProgress?.(t2("\u21B3 txt \uC5C5\uB85C\uB4DC \uC644\uB8CC", "\u21B3 .txt uploaded"));
         } catch (txtErr) {
-          onProgress?.("\u21B3 txt \uC5C5\uB85C\uB4DC \uC2E4\uD328\n" + execDetail(txtErr) + "\n\u2192 --text \uC9C1\uC811 \uC804\uB2EC \uC2DC\uB3C4");
+          onProgress?.(t2("\u21B3 txt \uC5C5\uB85C\uB4DC \uC2E4\uD328", "\u21B3 .txt upload failed") + "\n" + execDetail(txtErr) + t2("\n\u2192 --text \uC9C1\uC811 \uC804\uB2EC \uC2DC\uB3C4", "\n\u2192 trying --text direct input"));
           try {
             await execFileAsync(
               path,
               ["source", "add", notebookId, "--text", cleanedText],
               { timeout: 3e5 }
             );
-            onProgress?.("\u21B3 \uD14D\uC2A4\uD2B8 \uCD94\uAC00 \uC644\uB8CC");
+            onProgress?.(t2("\u21B3 \uD14D\uC2A4\uD2B8 \uCD94\uAC00 \uC644\uB8CC", "\u21B3 Text source added"));
           } catch (error) {
-            throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + execDetail(error));
+            throw new Error(t2("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: ", "Failed to add source: ") + execDetail(error));
           }
         } finally {
           (0, import_promises.unlink)(tmpTxtPath).catch(() => {
           });
         }
       }
-      onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uB178\uD2B8\uBD81 \uAC1C\uC694 \u2014 \uCD5C\uB300 30\uCD08 \uC18C\uC694)");
+      onProgress?.(t2("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uB178\uD2B8\uBD81 \uAC1C\uC694 \u2014 \uCD5C\uB300 30\uCD08 \uC18C\uC694)", "3/5  Generating AI summary...\n(NotebookLM notebook overview \u2014 up to 30s)"));
       const parseSummary = (stdout) => {
         try {
           const parsed = JSON.parse(stdout.trim());
@@ -380,18 +402,18 @@ var NotebookLMClient = class {
           );
           summary = parseSummary(stdout);
         } catch (describeErr) {
-          onProgress?.("\u21B3 \uC694\uC57D \uC2E4\uD328: " + execDetail(describeErr));
-          summary = "\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
+          onProgress?.(t2("\u21B3 \uC694\uC57D \uC2E4\uD328: ", "\u21B3 Summary failed: ") + execDetail(describeErr));
+          summary = t2("\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.", "Unable to generate summary.");
         }
       }
-      onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(1\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 20\uBD84 \uB300\uAE30)");
+      onProgress?.(t2("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(1\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 20\uBD84 \uB300\uAE30)", "4/5  Starting slide generation...\n(polling every 1 min, up to 20 min)"));
       let artifactId = "";
       {
         const maxRetries = 3;
         let lastErr;
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
           if (attempt > 1) {
-            onProgress?.(`\u21B3 \uC7AC\uC2DC\uB3C4 ${attempt}/${maxRetries} \u2014 30\uCD08 \uB300\uAE30 \uC911...`);
+            onProgress?.(t2(`\u21B3 \uC7AC\uC2DC\uB3C4 ${attempt}/${maxRetries} \u2014 30\uCD08 \uB300\uAE30 \uC911...`, `\u21B3 Retry ${attempt}/${maxRetries} \u2014 waiting 30s...`));
             await new Promise((r) => setTimeout(r, 3e4));
           }
           try {
@@ -414,21 +436,21 @@ var NotebookLMClient = class {
               { timeout: 6e4 }
             );
             const id = this.extractArtifactId(stdout);
-            if (!id) throw new Error("Artifact ID\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4");
-            onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791\uB428 (ID: " + id + ")");
+            if (!id) throw new Error(t2("Artifact ID\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4", "Artifact ID not found"));
+            onProgress?.(t2("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791\uB428 (ID: ", "\u21B3 Slide generation started (ID: ") + id + ")");
             await this.waitForArtifact(path, notebookId, id, onProgress);
             artifactId = id;
-            onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC644\uB8CC!");
+            onProgress?.(t2("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC644\uB8CC!", "\u21B3 Slide generation complete!"));
             lastErr = null;
             break;
           } catch (error) {
             lastErr = error;
-            onProgress?.(`\u21B3 \uC2DC\uB3C4 ${attempt} \uC2E4\uD328: ` + execDetail(error));
+            onProgress?.(t2(`\u21B3 \uC2DC\uB3C4 ${attempt} \uC2E4\uD328: `, `\u21B3 Attempt ${attempt} failed: `) + execDetail(error));
           }
         }
-        if (lastErr) throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328: " + execDetail(lastErr));
+        if (lastErr) throw new Error(t2("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328: ", "Slide generation failed: ") + execDetail(lastErr));
       }
-      onProgress?.("5/5  PDF \uB2E4\uC6B4\uB85C\uB4DC \uC911...");
+      onProgress?.(t2("5/5  PDF \uB2E4\uC6B4\uB85C\uB4DC \uC911...", "5/5  Downloading PDF..."));
       const tmpPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-${Date.now()}.pdf`);
       try {
         await execFileAsync(
@@ -448,7 +470,7 @@ var NotebookLMClient = class {
           { timeout: 12e4 }
         );
       } catch (error) {
-        throw new Error("PDF \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328: " + execDetail(error));
+        throw new Error(t2("PDF \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328: ", "PDF download failed: ") + execDetail(error));
       }
       const fileBuffer = await (0, import_promises.readFile)(tmpPath);
       const pptxBuffer = fileBuffer.buffer.slice(
@@ -544,7 +566,7 @@ ${text}`, "utf-8");
       const elapsed = Date.now() - startTime;
       const mins = Math.floor(elapsed / 6e4);
       const secs = Math.floor(elapsed % 6e4 / 1e3);
-      const timeStr = `${mins}\uBD84 ${String(secs).padStart(2, "0")}\uCD08 \uACBD\uACFC`;
+      const timeStr = isKorean2 ? `${mins}\uBD84 ${String(secs).padStart(2, "0")}\uCD08 \uACBD\uACFC` : `${mins}m ${String(secs).padStart(2, "0")}s elapsed`;
       if (Date.now() - lastPollTime >= pollIntervalMs) {
         try {
           const { stdout: statusOut } = await execFileAsync(
@@ -561,25 +583,24 @@ ${text}`, "utf-8");
           lastPollTime = Date.now();
           if (status === "completed") return;
           if (status === "failed") {
-            throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328 (failed \uC0C1\uD0DC)");
+            throw new SlidePollError(t2("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328 (failed \uC0C1\uD0DC)", "Slide generation failed (status: failed)"));
           }
           if (status === "unknown") {
             unknownCount++;
             if (unknownCount >= 3) {
-              throw new Error(`\uC2AC\uB77C\uC774\uB4DC \uC0C1\uD0DC \uD655\uC778 \uBD88\uAC00 (${unknownCount}\uD68C \uC5F0\uC18D unknown)`);
+              throw new SlidePollError(t2(`\uC2AC\uB77C\uC774\uB4DC \uC0C1\uD0DC \uD655\uC778 \uBD88\uAC00 (${unknownCount}\uD68C \uC5F0\uC18D unknown)`, `Slide status unknown (${unknownCount} consecutive unknowns)`));
             }
           } else {
             unknownCount = 0;
           }
         } catch (error) {
-          const msg = String(error);
-          if (msg.includes("\uC2E4\uD328") || msg.includes("\uD655\uC778 \uBD88\uAC00")) throw error;
+          if (error instanceof SlidePollError) throw error;
           lastPollTime = Date.now();
         }
       }
-      onProgress?.(`\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911... | ${timeStr}`);
+      onProgress?.(`${t2("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911...", "\u21B3 Generating slides...")} | ${timeStr}`);
       if (elapsed >= maxWaitMs) {
-        throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uAC04 \uCD08\uACFC (20\uBD84 \uCD08\uACFC)");
+        throw new Error(t2("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uAC04 \uCD08\uACFC (20\uBD84 \uCD08\uACFC)", "Slide generation timed out (exceeded 20 min)"));
       }
     }
   }
@@ -606,8 +627,8 @@ ${text}`, "utf-8");
 
 // src/mode-modal.ts
 var import_obsidian2 = require("obsidian");
-var isKorean2 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
-var t2 = (ko, en) => isKorean2 ? ko : en;
+var isKorean3 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+var t3 = (ko, en) => isKorean3 ? ko : en;
 var ModeSelectionModal = class extends import_obsidian2.Modal {
   constructor(app) {
     super(app);
@@ -623,9 +644,9 @@ var ModeSelectionModal = class extends import_obsidian2.Modal {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("clippings-ppt-modal");
-    contentEl.createEl("h2", { text: t2("\uB9AC\uD3EC\uD2B8 \uBAA8\uB4DC \uC120\uD0DD", "Select Report Mode") });
+    contentEl.createEl("h2", { text: t3("\uB9AC\uD3EC\uD2B8 \uBAA8\uB4DC \uC120\uD0DD", "Select Report Mode") });
     contentEl.createEl("p", {
-      text: t2("\uC5B4\uB5A4 \uC2A4\uD0C0\uC77C\uC758 PDF\uB97C \uC0DD\uC131\uD560\uAE4C\uC694?", "Which style of PDF would you like to generate?"),
+      text: t3("\uC5B4\uB5A4 \uC2A4\uD0C0\uC77C\uC758 PDF\uB97C \uC0DD\uC131\uD560\uAE4C\uC694?", "Which style of PDF would you like to generate?"),
       cls: "clippings-ppt-modal-desc"
     });
     const modesContainer = contentEl.createDiv({
@@ -675,8 +696,8 @@ var DEFAULT_SETTINGS = {
   outputSubfolder: "PDF",
   exportPdfSubfolder: "exportPDF"
 };
-var isKorean3 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
-var t3 = (ko, en) => isKorean3 ? ko : en;
+var isKorean4 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+var t4 = (ko, en) => isKorean4 ? ko : en;
 var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
@@ -686,8 +707,8 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: `Clippings NotebookLM v${this.plugin.manifest.version}` });
-    containerEl.createEl("h3", { text: t3("NotebookLM \uC5F0\uB3D9", "NotebookLM Integration") });
-    const loginSetting = new import_obsidian3.Setting(containerEl).setName(t3("NotebookLM \uB85C\uADF8\uC778", "NotebookLM Login")).setDesc(t3(
+    containerEl.createEl("h3", { text: t4("NotebookLM \uC5F0\uB3D9", "NotebookLM Integration") });
+    const loginSetting = new import_obsidian3.Setting(containerEl).setName(t4("NotebookLM \uB85C\uADF8\uC778", "NotebookLM Login")).setDesc(t4(
       "Google \uACC4\uC815\uC73C\uB85C NotebookLM\uC5D0 \uB85C\uADF8\uC778\uD569\uB2C8\uB2E4.",
       "Sign in to NotebookLM with your Google account."
     ));
@@ -696,29 +717,29 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
     });
     this.checkLoginStatus(statusEl);
     loginSetting.addButton(
-      (button) => button.setButtonText(t3("\u{1F310} \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778", "\u{1F310} Login via Browser")).onClick(async () => {
+      (button) => button.setButtonText(t4("\u{1F310} \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778", "\u{1F310} Login via Browser")).onClick(async () => {
         button.setDisabled(true);
         await this.plugin.nlmClient.launchLogin();
         button.setDisabled(false);
       })
     );
     loginSetting.addButton(
-      (button) => button.setButtonText(t3("\uACC4\uC815 \uBCC0\uACBD", "Switch Account")).onClick(async () => {
+      (button) => button.setButtonText(t4("\uACC4\uC815 \uBCC0\uACBD", "Switch Account")).onClick(async () => {
         button.setDisabled(true);
         await this.plugin.nlmClient.launchAccountSwitch();
         button.setDisabled(false);
       })
     );
     loginSetting.addButton(
-      (button) => button.setButtonText(t3("\uC0C1\uD0DC \uD655\uC778", "Check Status")).onClick(async () => {
+      (button) => button.setButtonText(t4("\uC0C1\uD0DC \uD655\uC778", "Check Status")).onClick(async () => {
         button.setDisabled(true);
-        button.setButtonText(t3("\uD655\uC778 \uC911...", "Checking..."));
+        button.setButtonText(t4("\uD655\uC778 \uC911...", "Checking..."));
         await this.checkLoginStatus(statusEl);
         button.setDisabled(false);
-        button.setButtonText(t3("\uC0C1\uD0DC \uD655\uC778", "Check Status"));
+        button.setButtonText(t4("\uC0C1\uD0DC \uD655\uC778", "Check Status"));
       })
     );
-    new import_obsidian3.Setting(containerEl).setName(t3("nlm CLI \uACBD\uB85C", "nlm CLI Path")).setDesc(t3(
+    new import_obsidian3.Setting(containerEl).setName(t4("nlm CLI \uACBD\uB85C", "nlm CLI Path")).setDesc(t4(
       "notebooklm-mcp-cli\uC758 nlm \uC2E4\uD589 \uD30C\uC77C \uACBD\uB85C. \uAE30\uBCF8\uAC12 'nlm'\uC73C\uB85C \uCC3E\uC9C0 \uBABB\uD560 \uACBD\uC6B0 \uC808\uB300 \uACBD\uB85C\uB97C \uC785\uB825\uD558\uC138\uC694. \uC608: /Users/yourname/.local/bin/nlm",
       "Path to the nlm executable. If 'nlm' is not found in PATH, enter the full path. e.g. /Users/yourname/.local/bin/nlm"
     )).addText(
@@ -728,14 +749,14 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    containerEl.createEl("h3", { text: t3("\uD3F4\uB354 \uC124\uC815", "Folder Settings") });
-    new import_obsidian3.Setting(containerEl).setName(t3("Clippings \uD3F4\uB354", "Clippings Folder")).setDesc(t3("\uC6F9 \uD074\uB9AC\uD551\uC774 \uC800\uC7A5\uB418\uB294 \uD3F4\uB354 \uACBD\uB85C", "Folder path where web clips are stored")).addText(
+    containerEl.createEl("h3", { text: t4("\uD3F4\uB354 \uC124\uC815", "Folder Settings") });
+    new import_obsidian3.Setting(containerEl).setName(t4("Clippings \uD3F4\uB354", "Clippings Folder")).setDesc(t4("\uC6F9 \uD074\uB9AC\uD551\uC774 \uC800\uC7A5\uB418\uB294 \uD3F4\uB354 \uACBD\uB85C", "Folder path where web clips are stored")).addText(
       (text) => text.setPlaceholder("Clippings").setValue(this.plugin.settings.clippingsFolder).onChange(async (value) => {
         this.plugin.settings.clippingsFolder = value || "Clippings";
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian3.Setting(containerEl).setName(t3("PDF \uC800\uC7A5 \uD558\uC704 \uD3F4\uB354", "PDF Output Subfolder")).setDesc(t3(
+    new import_obsidian3.Setting(containerEl).setName(t4("PDF \uC800\uC7A5 \uD558\uC704 \uD3F4\uB354", "PDF Output Subfolder")).setDesc(t4(
       "Clippings \uD3F4\uB354 \uC548\uC5D0 PDF\uAC00 \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85",
       "Subfolder inside Clippings where generated PDFs are saved"
     )).addText(
@@ -744,7 +765,7 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian3.Setting(containerEl).setName(t3("PDF \uB0B4\uBCF4\uB0B4\uAE30 \uC784\uC2DC \uC800\uC7A5 \uD3F4\uB354", "PDF Export Temp Folder")).setDesc(t3(
+    new import_obsidian3.Setting(containerEl).setName(t4("PDF \uB0B4\uBCF4\uB0B4\uAE30 \uC784\uC2DC \uC800\uC7A5 \uD3F4\uB354", "PDF Export Temp Folder")).setDesc(t4(
       "NotebookLM \uC5C5\uB85C\uB4DC\uC6A9 PDF\uAC00 \uC784\uC2DC \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85 (\uC5C5\uB85C\uB4DC \uD6C4 \uC790\uB3D9 \uC0AD\uC81C)",
       "Subfolder for temporary PDF storage before upload (auto-deleted after upload)"
     )).addText(
@@ -756,11 +777,11 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
   }
   async checkLoginStatus(statusEl) {
     statusEl.empty();
-    statusEl.setText(t3("\uD655\uC778 \uC911...", "Checking..."));
+    statusEl.setText(t4("\uD655\uC778 \uC911...", "Checking..."));
     statusEl.removeClass("clippings-ppt-status-ok", "clippings-ppt-status-error");
     const installed = await this.plugin.nlmClient.isInstalled();
     if (!installed) {
-      statusEl.setText(t3(
+      statusEl.setText(t4(
         "\u26A0 nlm CLI \uBBF8\uC124\uCE58 \u2014 \uD130\uBBF8\uB110\uC5D0\uC11C: uv tool install notebooklm-mcp-cli",
         "\u26A0 nlm CLI not installed \u2014 run: uv tool install notebooklm-mcp-cli"
       ));
@@ -769,10 +790,10 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
     }
     const loggedIn = await this.plugin.nlmClient.isLoggedIn();
     if (loggedIn) {
-      statusEl.setText(t3("\u2713 \uB85C\uADF8\uC778\uB428", "\u2713 Logged in"));
+      statusEl.setText(t4("\u2713 \uB85C\uADF8\uC778\uB428", "\u2713 Logged in"));
       statusEl.addClass("clippings-ppt-status-ok");
     } else {
-      statusEl.setText(t3(
+      statusEl.setText(t4(
         "\u2717 \uB85C\uADF8\uC778 \uD544\uC694 \u2014 '\uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778' \uBC84\uD2BC\uC744 \uD074\uB9AD\uD558\uC138\uC694",
         "\u2717 Not logged in \u2014 click 'Login via Browser'"
       ));
@@ -784,8 +805,8 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
 // src/sidebar.ts
 var import_obsidian4 = require("obsidian");
 var VIEW_TYPE_SIDEBAR = "clippings-notebooklm-sidebar";
-var isKorean4 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
-var t4 = (ko, en) => isKorean4 ? ko : en;
+var isKorean5 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+var t5 = (ko, en) => isKorean5 ? ko : en;
 var ClippingsSidebarView = class extends import_obsidian4.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
@@ -817,7 +838,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
     const btnArea = contentEl.createEl("div", { cls: "clippings-sidebar-btn-area" });
     const btn = btnArea.createEl("button", {
       cls: "clippings-sidebar-generate-btn",
-      text: t4("NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30", "Summarize with NotebookLM")
+      text: t5("NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30", "Summarize with NotebookLM")
     });
     this.generateBtn = btn;
     btn.addEventListener("click", async () => {
@@ -827,7 +848,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
         return;
       }
       if (!activeFile.path.startsWith(this.plugin.settings.clippingsFolder + "/")) {
-        this.showHint(t4(
+        this.showHint(t5(
           "Clippings \uD3F4\uB354\uC758 \uB178\uD2B8\uB97C \uBA3C\uC800 \uC5F4\uC5B4\uC8FC\uC138\uC694.",
           "Please open a note in the Clippings folder."
         ));
@@ -851,7 +872,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
     contentEl.createEl("hr", { cls: "clippings-sidebar-divider" });
     contentEl.createEl("div", {
       cls: "clippings-sidebar-section-title",
-      text: t4("\uC791\uC5C5 \uB0B4\uC5ED", "History")
+      text: t5("\uC791\uC5C5 \uB0B4\uC5ED", "History")
     });
     this.historyListEl = contentEl.createEl("div", { cls: "clippings-sidebar-history" });
     this.renderHistory();
@@ -860,15 +881,15 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
     if (!this.generateBtn) return;
     if (this.plugin.isRunning) {
       this.generateBtn.disabled = true;
-      this.generateBtn.textContent = t4("\u23F3 \uC791\uC5C5 \uC9C4\uD589 \uC911...", "\u23F3 Processing...");
+      this.generateBtn.textContent = t5("\u23F3 \uC791\uC5C5 \uC9C4\uD589 \uC911...", "\u23F3 Processing...");
       this.generateBtn.addClass("clippings-sidebar-generate-btn--running");
       if (this.hintEl) {
-        this.hintEl.textContent = t4("\uC644\uB8CC \uD6C4 \uC0AC\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4", "Available after completion");
+        this.hintEl.textContent = t5("\uC644\uB8CC \uD6C4 \uC0AC\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4", "Available after completion");
         this.hintEl.removeClass("clippings-sidebar-hint-active");
       }
     } else {
       this.generateBtn.disabled = false;
-      this.generateBtn.textContent = t4("NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30", "Summarize with NotebookLM");
+      this.generateBtn.textContent = t5("NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30", "Summarize with NotebookLM");
       this.generateBtn.removeClass("clippings-sidebar-generate-btn--running");
       if (this.hintEl) this.updateActiveFileHint(this.hintEl);
     }
@@ -885,7 +906,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
   updateActiveFileHint(el) {
     const file = this.plugin.app.workspace.getActiveFile();
     if (!file) {
-      el.setText(t4("\uD65C\uC131 \uB178\uD2B8 \uC5C6\uC74C", "No active note"));
+      el.setText(t5("\uD65C\uC131 \uB178\uD2B8 \uC5C6\uC74C", "No active note"));
       el.removeClass("clippings-sidebar-hint-active");
       return;
     }
@@ -894,7 +915,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       el.setText(`\u2713 ${file.basename}`);
       el.addClass("clippings-sidebar-hint-active");
     } else {
-      el.setText(t4("Clippings \uD3F4\uB354 \uB178\uD2B8\uB97C \uC5F4\uC5B4\uC8FC\uC138\uC694", "Please open a Clippings note"));
+      el.setText(t5("Clippings \uD3F4\uB354 \uB178\uD2B8\uB97C \uC5F4\uC5B4\uC8FC\uC138\uC694", "Please open a Clippings note"));
       el.removeClass("clippings-sidebar-hint-active");
     }
   }
@@ -907,7 +928,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
     if (history.length === 0) {
       this.historyListEl.createEl("div", {
         cls: "clippings-sidebar-empty",
-        text: t4("\uC544\uC9C1 \uC0DD\uC131 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.", "No history yet.")
+        text: t5("\uC544\uC9C1 \uC0DD\uC131 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.", "No history yet.")
       });
       return;
     }
@@ -938,15 +959,15 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       if (item.status === "error") {
         const copyBtn = card.createEl("button", {
           cls: "clippings-sidebar-card-copy-btn",
-          text: t4("\uB85C\uADF8 \uBCF5\uC0AC", "Copy Log")
+          text: t5("\uB85C\uADF8 \uBCF5\uC0AC", "Copy Log")
         });
         copyBtn.addEventListener("click", () => {
           const logText = (item.log ?? []).join("\n");
           const full = logText ? logText + "\n" + (item.errorMsg ?? "") : item.errorMsg ?? "";
           navigator.clipboard.writeText(full).then(() => {
-            copyBtn.textContent = t4("\u2713 \uBCF5\uC0AC\uB428", "\u2713 Copied");
+            copyBtn.textContent = t5("\u2713 \uBCF5\uC0AC\uB428", "\u2713 Copied");
             setTimeout(() => {
-              copyBtn.textContent = t4("\uB85C\uADF8 \uBCF5\uC0AC", "Copy Log");
+              copyBtn.textContent = t5("\uB85C\uADF8 \uBCF5\uC0AC", "Copy Log");
             }, 2e3);
           });
         });
@@ -975,9 +996,9 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
   formatDate(date) {
     const now = /* @__PURE__ */ new Date();
     const diff = now.getTime() - date.getTime();
-    if (diff < 6e4) return t4("\uBC29\uAE08 \uC804", "Just now");
-    if (diff < 36e5) return isKorean4 ? `${Math.floor(diff / 6e4)}\uBD84 \uC804` : `${Math.floor(diff / 6e4)}m ago`;
-    if (diff < 864e5) return isKorean4 ? `${Math.floor(diff / 36e5)}\uC2DC\uAC04 \uC804` : `${Math.floor(diff / 36e5)}h ago`;
+    if (diff < 6e4) return t5("\uBC29\uAE08 \uC804", "Just now");
+    if (diff < 36e5) return isKorean5 ? `${Math.floor(diff / 6e4)}\uBD84 \uC804` : `${Math.floor(diff / 6e4)}m ago`;
+    if (diff < 864e5) return isKorean5 ? `${Math.floor(diff / 36e5)}\uC2DC\uAC04 \uC804` : `${Math.floor(diff / 36e5)}h ago`;
     return `${date.getMonth() + 1}/${date.getDate()}`;
   }
 };
@@ -991,6 +1012,8 @@ var NOTEBOOKLM_ICON_SVG = `
 <line x1="36" y1="60" x2="78" y2="60" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
 <line x1="36" y1="75" x2="78" y2="75" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
 `;
+var isKorean6 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+var t6 = (ko, en) => isKorean6 ? ko : en;
 var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
   constructor() {
     super(...arguments);
@@ -1013,7 +1036,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
     });
     this.addCommand({
       id: "generate-ppt-notebooklm",
-      name: "NotebookLM\uC73C\uB85C PDF \uB9CC\uB4E4\uAE30",
+      name: t6("NotebookLM\uC73C\uB85C PDF \uB9CC\uB4E4\uAE30", "Generate PDF with NotebookLM"),
       checkCallback: (checking) => {
         if (this.isRunning) return false;
         const view = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
@@ -1062,7 +1085,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
       modeIcon: modeConfig.icon,
       status: "running",
       date: /* @__PURE__ */ new Date(),
-      log: ["\uC5F0\uACB0 \uC911..."]
+      log: [t6("\uC5F0\uACB0 \uC911...", "Connecting...")]
     };
     this.history.push(historyItem);
     this.refreshSidebar();
@@ -1078,7 +1101,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
         source || void 0,
         (step) => {
           historyItem.log = historyItem.log ?? [];
-          const TIMER_PREFIX = "\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911...";
+          const TIMER_PREFIX = t6("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911...", "\u21B3 Generating slides...");
           const last = historyItem.log[historyItem.log.length - 1];
           if (step.startsWith(TIMER_PREFIX) && last?.startsWith(TIMER_PREFIX)) {
             historyItem.log[historyItem.log.length - 1] = step;
@@ -1110,13 +1133,13 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
       );
       historyItem.status = "success";
       historyItem.pptPath = pptPath;
-      historyItem.log?.push(`\u2713 \uC644\uB8CC: ${pptFileName}`);
+      historyItem.log?.push(t6("\u2713 \uC644\uB8CC: ", "\u2713 Done: ") + pptFileName);
       this.refreshSidebar();
     } catch (error) {
       const rawMsg = String(error);
       historyItem.status = "error";
       historyItem.errorMsg = this.classifyError(rawMsg);
-      historyItem.log?.push("\u2717 \uC624\uB958: " + rawMsg);
+      historyItem.log?.push(t6("\u2717 \uC624\uB958: ", "\u2717 Error: ") + rawMsg);
       this.refreshSidebar();
       console.error("[Clippings NotebookLM] PDF \uC0DD\uC131 \uC624\uB958:", error);
     } finally {
@@ -1212,17 +1235,35 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
   }
   classifyError(msg) {
     if (msg.includes("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328")) {
-      return "\u{1F4C4} \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC2E4\uD328.\n\uB178\uD2B8\uC758 source URL\uC744 \uD655\uC778\uD558\uAC70\uB098 \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
+      return t6(
+        "\u{1F4C4} \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC2E4\uD328.\n\uB178\uD2B8\uC758 source URL\uC744 \uD655\uC778\uD558\uAC70\uB098 \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+        "\u{1F4C4} Source upload failed.\nCheck the note's source URL or try again later."
+      );
     } else if (msg.includes("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328")) {
-      return "\u{1F3A8} \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
+      return t6(
+        "\u{1F3A8} \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+        "\u{1F3A8} Slide generation failed.\nPlease try again later."
+      );
     } else if (msg.includes("\uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328")) {
-      return "\u2B07\uFE0F PDF \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
+      return t6(
+        "\u2B07\uFE0F PDF \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+        "\u2B07\uFE0F PDF download failed.\nPlease try again later."
+      );
     } else if (msg.includes("\uB85C\uADF8\uC778") || msg.includes("login")) {
-      return "\u{1F510} NotebookLM \uB85C\uADF8\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.\n\uC124\uC815 \u2192 \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778";
+      return t6(
+        "\u{1F510} NotebookLM \uB85C\uADF8\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.\n\uC124\uC815 \u2192 \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778",
+        "\u{1F510} NotebookLM login required.\nSettings \u2192 Login via Browser"
+      );
     } else if (msg.includes("\uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4") || msg.includes("not found") || msg.includes("ENOENT")) {
-      return "\u26A0\uFE0F nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uC124\uC815\uC5D0\uC11C \uACBD\uB85C\uB97C \uD655\uC778\uD558\uC138\uC694.";
+      return t6(
+        "\u26A0\uFE0F nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uC124\uC815\uC5D0\uC11C \uACBD\uB85C\uB97C \uD655\uC778\uD558\uC138\uC694.",
+        "\u26A0\uFE0F nlm CLI not found.\nCheck the path in Settings."
+      );
     }
-    return "\u274C PDF \uC0DD\uC131 \uC2E4\uD328.\n\uAC1C\uBC1C\uC790 \uB3C4\uAD6C \uCF58\uC194(Ctrl+Shift+I)\uC5D0\uC11C \uC790\uC138\uD55C \uC624\uB958\uB97C \uD655\uC778\uD558\uC138\uC694.";
+    return t6(
+      "\u274C PDF \uC0DD\uC131 \uC2E4\uD328.\n\uAC1C\uBC1C\uC790 \uB3C4\uAD6C \uCF58\uC194(Ctrl+Shift+I)\uC5D0\uC11C \uC790\uC138\uD55C \uC624\uB958\uB97C \uD655\uC778\uD558\uC138\uC694.",
+      "\u274C PDF generation failed.\nCheck the developer console (Ctrl+Shift+I) for details."
+    );
   }
   async insertSummaryAndLink(file, originalContent, summary, pptPath, modeConfig) {
     const { raw: rawFrontmatter, body } = this.parseFrontmatter(originalContent);

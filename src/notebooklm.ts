@@ -9,13 +9,20 @@ import { MODES } from "./prompts";
 
 const execFileAsync = promisify(execFile);
 
+const isKorean = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+const t = (ko: string, en: string): string => isKorean ? ko : en;
+
+class SlidePollError extends Error {
+	constructor(message: string) { super(message); }
+}
+
 /** execFile 에러에서 실제 stderr/stdout 메시지를 추출한다. */
 function execDetail(error: unknown): string {
 	const e = error as Record<string, unknown>;
 	// 타임아웃으로 프로세스가 강제 종료된 경우
 	if (e.killed === true) {
 		const secs = typeof e.timeout === "number" ? Math.round(e.timeout / 1000) : "?";
-		return `처리 시간 초과 (${secs}초 — nlm 처리 지연)`;
+		return t(`처리 시간 초과 (${secs}초 — nlm 처리 지연)`, `Request timed out (${secs}s — nlm processing delay)`);
 	}
 	const stderr = typeof e.stderr === "string" ? e.stderr.trim() : "";
 	const stdout = typeof e.stdout === "string" ? e.stdout.trim() : "";
@@ -147,11 +154,18 @@ export class NotebookLMClient {
 		const installed = await this.isInstalled();
 		if (!installed) {
 			new Notice(
-				"nlm CLI를 찾을 수 없습니다.\n" +
-				"터미널에서 먼저 설치하세요:\n\n" +
-				"  uv tool install notebooklm-mcp-cli\n\n" +
-				"설치 후 설정에서 경로를 확인하거나\n" +
-				"절대 경로(예: /Users/you/.local/bin/nlm)를 직접 입력하세요.",
+				t(
+					"nlm CLI를 찾을 수 없습니다.\n" +
+					"터미널에서 먼저 설치하세요:\n\n" +
+					"  uv tool install notebooklm-mcp-cli\n\n" +
+					"설치 후 설정에서 경로를 확인하거나\n" +
+					"절대 경로(예: /Users/you/.local/bin/nlm)를 직접 입력하세요.",
+					"nlm CLI not found.\n" +
+					"Install it from the terminal first:\n\n" +
+					"  uv tool install notebooklm-mcp-cli\n\n" +
+					"After installing, check the path in settings or\n" +
+					"enter the full path (e.g. /Users/you/.local/bin/nlm)."
+				),
 				12000
 			);
 			return false;
@@ -166,13 +180,17 @@ export class NotebookLMClient {
 			proc.unref();
 
 			new Notice(
-				"🌐 브라우저가 열립니다. Google 계정으로 로그인하세요.\n" +
-				"완료 후 '상태 확인' 버튼을 눌러 확인하세요.",
+				t(
+					"🌐 브라우저가 열립니다. Google 계정으로 로그인하세요.\n" +
+					"완료 후 '상태 확인' 버튼을 눌러 확인하세요.",
+					"🌐 A browser window will open. Sign in with your Google account.\n" +
+					"Click 'Check Status' when done."
+				),
 				8000
 			);
 			return true;
 		} catch (error) {
-			new Notice("로그인 실행 실패: " + String(error), 8000);
+			new Notice(t("로그인 실행 실패: ", "Login failed: ") + String(error), 8000);
 			return false;
 		}
 	}
@@ -184,7 +202,7 @@ export class NotebookLMClient {
 	async launchAccountSwitch(): Promise<boolean> {
 		const installed = await this.isInstalled();
 		if (!installed) {
-			new Notice("nlm CLI를 찾을 수 없습니다.", 6000);
+			new Notice(t("nlm CLI를 찾을 수 없습니다.", "nlm CLI not found."), 6000);
 			return false;
 		}
 
@@ -197,14 +215,19 @@ export class NotebookLMClient {
 			proc.unref();
 
 			new Notice(
-				"🔄 기존 계정 정보를 삭제하고 브라우저를 엽니다.\n" +
-				"새 Google 계정으로 로그인하세요.\n" +
-				"완료 후 '상태 확인' 버튼을 눌러 확인하세요.",
+				t(
+					"🔄 기존 계정 정보를 삭제하고 브라우저를 엽니다.\n" +
+					"새 Google 계정으로 로그인하세요.\n" +
+					"완료 후 '상태 확인' 버튼을 눌러 확인하세요.",
+					"🔄 Clearing saved credentials and opening a browser.\n" +
+					"Sign in with your new Google account.\n" +
+					"Click 'Check Status' when done."
+				),
 				10000
 			);
 			return true;
 		} catch (error) {
-			new Notice("계정 변경 실행 실패: " + String(error), 8000);
+			new Notice(t("계정 변경 실행 실패: ", "Account switch failed: ") + String(error), 8000);
 			return false;
 		}
 	}
@@ -222,19 +245,30 @@ export class NotebookLMClient {
 		const installed = await this.isInstalled();
 		if (!installed) {
 			throw new Error(
-				"nlm CLI를 찾을 수 없습니다.\n" +
-				"터미널에서 'uv tool install notebooklm-mcp-cli'를 실행하거나,\n" +
-				"설정에서 nlm 경로를 절대 경로로 지정하세요.\n" +
-				"예: /Users/yourname/.local/bin/nlm"
+				t(
+					"nlm CLI를 찾을 수 없습니다.\n" +
+					"터미널에서 'uv tool install notebooklm-mcp-cli'를 실행하거나,\n" +
+					"설정에서 nlm 경로를 절대 경로로 지정하세요.\n" +
+					"예: /Users/yourname/.local/bin/nlm",
+					"nlm CLI not found.\n" +
+					"Run 'uv tool install notebooklm-mcp-cli' in the terminal, or\n" +
+					"set the full path to nlm in settings.\n" +
+					"e.g. /Users/yourname/.local/bin/nlm"
+				)
 			);
 		}
 
 		const loggedIn = await this.isLoggedIn();
 		if (!loggedIn) {
 			throw new Error(
-				"NotebookLM에 로그인되어 있지 않습니다.\n" +
-				"설정 탭에서 '브라우저로 로그인' 버튼을 클릭하거나,\n" +
-				"터미널에서 'nlm login'을 실행하세요."
+				t(
+					"NotebookLM에 로그인되어 있지 않습니다.\n" +
+					"설정 탭에서 '브라우저로 로그인' 버튼을 클릭하거나,\n" +
+					"터미널에서 'nlm login'을 실행하세요.",
+					"Not logged in to NotebookLM.\n" +
+					"Click 'Login via Browser' in Settings, or\n" +
+					"run 'nlm login' in the terminal."
+				)
 			);
 		}
 
@@ -244,7 +278,7 @@ export class NotebookLMClient {
 		const lang = (typeof navigator !== "undefined" ? navigator.language?.split("-")[0] : null) ?? "ko";
 
 		// 1. 노트북 생성
-		onProgress?.("1/5  노트북 생성 중...");
+		onProgress?.(t("1/5  노트북 생성 중...", "1/5  Creating notebook..."));
 		// 옵시디언 title 속성을 노트북 이름으로 사용 (특수문자 제거, 80자 제한)
 		const notebookName = title
 			.replace(/[^\w\s가-힣\-_.]/g, "")
@@ -264,11 +298,11 @@ export class NotebookLMClient {
 			);
 			const longIdMatch = createOut.match(/[a-zA-Z0-9_-]{20,}/);
 			notebookId = uuidMatch?.[0] ?? longIdMatch?.[0] ?? notebookName;
-			onProgress?.("↳ 노트북 생성 완료\nID: " + notebookId + "\ncreate 출력: " + (createOut.trim() || "(없음)"));
+			onProgress?.(t("↳ 노트북 생성 완료", "↳ Notebook created") + "\nID: " + notebookId + "\n" + t("create 출력: ", "create output: ") + (createOut.trim() || t("(없음)", "(none)")));
 			// 노트북이 소스를 받을 준비가 될 때까지 잠시 대기
 			await new Promise(r => setTimeout(r, 3000));
 		} catch (error) {
-			throw new Error("노트북 생성 실패: " + execDetail(error));
+			throw new Error(t("노트북 생성 실패: ", "Failed to create notebook: ") + execDetail(error));
 		}
 
 		let exportedPdfPath: string | null = null;
@@ -276,13 +310,13 @@ export class NotebookLMClient {
 		try {
 			// 2. 소스 추가
 			const truncated = content.length > 30000
-				? content.slice(0, 30000) + "\n...(내용 생략)"
+				? content.slice(0, 30000) + t("\n...(내용 생략)", "\n...(content truncated)")
 				: content;
 			let sourceAdded = false;
 
 			// 2a. URL 소스 시도
 			if (sourceUrl) {
-				onProgress?.("2/5  URL 소스 업로드 중...\n(NotebookLM AI 인덱싱 — 최대 1분 소요)");
+				onProgress?.(t("2/5  URL 소스 업로드 중...\n(NotebookLM AI 인덱싱 — 최대 1분 소요)", "2/5  Uploading URL source...\n(NotebookLM AI indexing — up to 1 min)"));
 				try {
 					await execFileAsync(
 						path, ["source", "add", notebookId, "--url", sourceUrl, "--wait"],
@@ -290,23 +324,23 @@ export class NotebookLMClient {
 					);
 					sourceAdded = true;
 					uploadSucceeded = true;
-					onProgress?.("↳ URL 업로드 완료");
+					onProgress?.(t("↳ URL 업로드 완료", "↳ URL uploaded"));
 				} catch {
-					onProgress?.("↳ URL 크롤링 실패 → PDF 변환으로 전환");
+					onProgress?.(t("↳ URL 크롤링 실패 → PDF 변환으로 전환", "↳ URL crawl failed → switching to PDF"));
 				}
 			} else {
-				onProgress?.("2/5  소스 업로드 준비 중...\n(URL 없음 → PDF 변환 시도)");
+				onProgress?.(t("2/5  소스 업로드 준비 중...\n(URL 없음 → PDF 변환 시도)", "2/5  Preparing source upload...\n(no URL → trying PDF conversion)"));
 			}
 
 			// 2b. PDF 변환 후 --file 시도
 			if (!sourceAdded) {
-				onProgress?.("2b/5  PDF 변환 중...\n(Obsidian 내보내기 — 최대 30초 소요)");
+				onProgress?.(t("2b/5  PDF 변환 중...\n(Obsidian 내보내기 — 최대 30초 소요)", "2b/5  Converting to PDF...\n(Obsidian export — up to 30s)"));
 				const tmpPdfPath = pdfProvider
 					? await pdfProvider()
 					: await this.convertMarkdownToPdf(title, truncated);
 				if (tmpPdfPath) {
 					exportedPdfPath = tmpPdfPath;
-					onProgress?.("↳ PDF 변환 성공: " + tmpPdfPath);
+					onProgress?.(t("↳ PDF 변환 성공: ", "↳ PDF converted: ") + tmpPdfPath);
 					try {
 						await execFileAsync(
 							path, ["source", "add", notebookId, "--file", tmpPdfPath, "--wait"],
@@ -314,21 +348,21 @@ export class NotebookLMClient {
 						);
 						sourceAdded = true;
 						uploadSucceeded = true;
-						onProgress?.("↳ PDF 업로드 완료");
+						onProgress?.(t("↳ PDF 업로드 완료", "↳ PDF uploaded"));
 					} catch (pdfErr) {
-						onProgress?.("↳ PDF 업로드 실패\n" + execDetail(pdfErr) + "\n→ 텍스트 파일로 전환");
+						onProgress?.(t("↳ PDF 업로드 실패", "↳ PDF upload failed") + "\n" + execDetail(pdfErr) + t("\n→ 텍스트 파일로 전환", "\n→ switching to text file"));
 					}
 				} else {
-					onProgress?.("↳ PDF 변환 불가 → 텍스트로 전환");
+					onProgress?.(t("↳ PDF 변환 불가 → 텍스트로 전환", "↳ PDF conversion unavailable → switching to text"));
 				}
 			}
 
 			// 2c. 정제된 텍스트를 .txt 파일로 저장 후 --file 업로드 (최종 폴백)
 			if (!sourceAdded) {
-				onProgress?.("2c/5  텍스트 파일 업로드 중...\n(마크다운 정제 후 .txt 저장)");
+				onProgress?.(t("2c/5  텍스트 파일 업로드 중...\n(마크다운 정제 후 .txt 저장)", "2c/5  Uploading text file...\n(cleaned markdown → .txt)"));
 				const cleanedText = this.cleanTextForSource(truncated);
 				if (!cleanedText) {
-					throw new Error("소스 추가 실패: 노트 본문이 비어 있습니다.");
+					throw new Error(t("소스 추가 실패: 노트 본문이 비어 있습니다.", "Failed to add source: note body is empty."));
 				}
 				const tmpTxtPath = join(tmpdir(), `nlm-src-${Date.now()}.txt`);
 				try {
@@ -337,18 +371,18 @@ export class NotebookLMClient {
 						path, ["source", "add", notebookId, "--file", tmpTxtPath, "--wait"],
 						{ timeout: 300000 }
 					);
-					onProgress?.("↳ txt 업로드 완료");
+					onProgress?.(t("↳ txt 업로드 완료", "↳ .txt uploaded"));
 				} catch (txtErr) {
 					// .txt --file 실패 시 --text 직접 전달로 최후 시도
-					onProgress?.("↳ txt 업로드 실패\n" + execDetail(txtErr) + "\n→ --text 직접 전달 시도");
+					onProgress?.(t("↳ txt 업로드 실패", "↳ .txt upload failed") + "\n" + execDetail(txtErr) + t("\n→ --text 직접 전달 시도", "\n→ trying --text direct input"));
 					try {
 						await execFileAsync(
 							path, ["source", "add", notebookId, "--text", cleanedText],
 							{ timeout: 300000 }
 						);
-						onProgress?.("↳ 텍스트 추가 완료");
+						onProgress?.(t("↳ 텍스트 추가 완료", "↳ Text source added"));
 					} catch (error) {
-						throw new Error("소스 추가 실패: " + execDetail(error));
+						throw new Error(t("소스 추가 실패: ", "Failed to add source: ") + execDetail(error));
 					}
 				} finally {
 					unlink(tmpTxtPath).catch(() => {});
@@ -356,7 +390,7 @@ export class NotebookLMClient {
 			}
 
 			// 3. 노트북 개요 가져오기 (NotebookLM 자동 생성 요약)
-			onProgress?.("3/5  AI 요약 생성 중...\n(NotebookLM 노트북 개요 — 최대 30초 소요)");
+			onProgress?.(t("3/5  AI 요약 생성 중...\n(NotebookLM 노트북 개요 — 최대 30초 소요)", "3/5  Generating AI summary...\n(NotebookLM notebook overview — up to 30s)"));
 			const parseSummary = (stdout: string): string => {
 				try {
 					const parsed = JSON.parse(stdout.trim()) as { value?: { summary?: string[] } };
@@ -380,20 +414,20 @@ export class NotebookLMClient {
 					);
 					summary = parseSummary(stdout);
 				} catch (describeErr) {
-					onProgress?.("↳ 요약 실패: " + execDetail(describeErr));
-					summary = "요약을 생성할 수 없습니다.";
+					onProgress?.(t("↳ 요약 실패: ", "↳ Summary failed: ") + execDetail(describeErr));
+					summary = t("요약을 생성할 수 없습니다.", "Unable to generate summary.");
 				}
 			}
 
 			// 4. 슬라이드 생성 및 완료 대기 (NotebookLM Studio — 최대 3회 재시도)
-			onProgress?.("4/5  슬라이드 생성 시작 중...\n(1분마다 상태 확인, 최대 20분 대기)");
+			onProgress?.(t("4/5  슬라이드 생성 시작 중...\n(1분마다 상태 확인, 최대 20분 대기)", "4/5  Starting slide generation...\n(polling every 1 min, up to 20 min)"));
 			let artifactId = "";
 			{
 				const maxRetries = 3;
 				let lastErr: unknown;
 				for (let attempt = 1; attempt <= maxRetries; attempt++) {
 					if (attempt > 1) {
-						onProgress?.(`↳ 재시도 ${attempt}/${maxRetries} — 30초 대기 중...`);
+						onProgress?.(t(`↳ 재시도 ${attempt}/${maxRetries} — 30초 대기 중...`, `↳ Retry ${attempt}/${maxRetries} — waiting 30s...`));
 						await new Promise(r => setTimeout(r, 30000));
 					}
 					try {
@@ -409,23 +443,23 @@ export class NotebookLMClient {
 							{ timeout: 60000 }
 						);
 						const id = this.extractArtifactId(stdout);
-						if (!id) throw new Error("Artifact ID를 찾을 수 없습니다");
-						onProgress?.("↳ 슬라이드 생성 시작됨 (ID: " + id + ")");
+						if (!id) throw new Error(t("Artifact ID를 찾을 수 없습니다", "Artifact ID not found"));
+						onProgress?.(t("↳ 슬라이드 생성 시작됨 (ID: ", "↳ Slide generation started (ID: ") + id + ")");
 						await this.waitForArtifact(path, notebookId, id, onProgress);
 						artifactId = id;
-						onProgress?.("↳ 슬라이드 생성 완료!");
+						onProgress?.(t("↳ 슬라이드 생성 완료!", "↳ Slide generation complete!"));
 						lastErr = null;
 						break;
 					} catch (error) {
 						lastErr = error;
-						onProgress?.(`↳ 시도 ${attempt} 실패: ` + execDetail(error));
+						onProgress?.(t(`↳ 시도 ${attempt} 실패: `, `↳ Attempt ${attempt} failed: `) + execDetail(error));
 					}
 				}
-				if (lastErr) throw new Error("슬라이드 생성 실패: " + execDetail(lastErr));
+				if (lastErr) throw new Error(t("슬라이드 생성 실패: ", "Slide generation failed: ") + execDetail(lastErr));
 			}
 
 			// 5. PDF 다운로드
-			onProgress?.("5/5  PDF 다운로드 중...");
+			onProgress?.(t("5/5  PDF 다운로드 중...", "5/5  Downloading PDF..."));
 			const tmpPath = join(tmpdir(), `nlm-${Date.now()}.pdf`);
 			try {
 				await execFileAsync(
@@ -439,7 +473,7 @@ export class NotebookLMClient {
 					{ timeout: 120000 }
 				);
 			} catch (error) {
-				throw new Error("PDF 다운로드 실패: " + execDetail(error));
+				throw new Error(t("PDF 다운로드 실패: ", "PDF download failed: ") + execDetail(error));
 			}
 
 			// 파일 읽기 → ArrayBuffer
@@ -567,7 +601,7 @@ export class NotebookLMClient {
 			const elapsed = Date.now() - startTime;
 			const mins = Math.floor(elapsed / 60000);
 			const secs = Math.floor((elapsed % 60000) / 1000);
-			const timeStr = `${mins}분 ${String(secs).padStart(2, "0")}초 경과`;
+			const timeStr = isKorean ? `${mins}분 ${String(secs).padStart(2, "0")}초 경과` : `${mins}m ${String(secs).padStart(2, "0")}s elapsed`;
 
 			if (Date.now() - lastPollTime >= pollIntervalMs) {
 				// 1분마다 API 폴링
@@ -585,27 +619,26 @@ export class NotebookLMClient {
 
 					if (status === "completed") return;
 					if (status === "failed") {
-						throw new Error("슬라이드 생성 실패 (failed 상태)");
+						throw new SlidePollError(t("슬라이드 생성 실패 (failed 상태)", "Slide generation failed (status: failed)"));
 					}
 					if (status === "unknown") {
 						unknownCount++;
 						if (unknownCount >= 3) {
-							throw new Error(`슬라이드 상태 확인 불가 (${unknownCount}회 연속 unknown)`);
+							throw new SlidePollError(t(`슬라이드 상태 확인 불가 (${unknownCount}회 연속 unknown)`, `Slide status unknown (${unknownCount} consecutive unknowns)`));
 						}
 					} else {
 						unknownCount = 0; // "generating" 등 정상 상태면 초기화
 					}
 				} catch (error) {
-					const msg = String(error);
-					if (msg.includes("실패") || msg.includes("확인 불가")) throw error;
+					if (error instanceof SlidePollError) throw error;
 					lastPollTime = Date.now();
 				}
 			}
 
-			onProgress?.(`↳ 슬라이드 생성 중... | ${timeStr}`);
+			onProgress?.(`${t("↳ 슬라이드 생성 중...", "↳ Generating slides...")} | ${timeStr}`);
 
 			if (elapsed >= maxWaitMs) {
-				throw new Error("슬라이드 생성 시간 초과 (20분 초과)");
+				throw new Error(t("슬라이드 생성 시간 초과 (20분 초과)", "Slide generation timed out (exceeded 20 min)"));
 			}
 		}
 	}
