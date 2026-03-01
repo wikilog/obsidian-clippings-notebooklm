@@ -352,17 +352,23 @@ export class NotebookLMClient {
 				}
 			}
 
-			// 3. 요약 요청
-			onProgress?.("3/5  AI 요약 생성 중...\n(NotebookLM 응답 대기 — 최대 2분 소요)");
+			// 3. 노트북 개요 가져오기 (NotebookLM 자동 생성 요약)
+			onProgress?.("3/5  AI 요약 생성 중...\n(NotebookLM 노트북 개요 — 최대 30초 소요)");
 			let summary: string;
 			try {
 				const { stdout } = await execFileAsync(
-					path, ["query", "notebook", notebookId, modeConfig.summaryPrompt],
-					{ timeout: 120000 }
+					path, ["notebook", "describe", notebookId, "--json"],
+					{ timeout: 60000 }
 				);
-				summary = stdout.trim();
-			} catch (queryErr) {
-				onProgress?.("↳ 요약 실패: " + execDetail(queryErr));
+				try {
+					const parsed = JSON.parse(stdout.trim()) as { value?: { summary?: string[] } };
+					const lines: string[] = parsed?.value?.summary ?? [];
+					summary = lines.join("\n\n").trim() || stdout.trim();
+				} catch {
+					summary = stdout.trim();
+				}
+			} catch (describeErr) {
+				onProgress?.("↳ 요약 실패: " + execDetail(describeErr));
 				summary = "요약을 생성할 수 없습니다.";
 			}
 

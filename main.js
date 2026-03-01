@@ -350,17 +350,23 @@ var NotebookLMClient = class {
           });
         }
       }
-      onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uC751\uB2F5 \uB300\uAE30 \u2014 \uCD5C\uB300 2\uBD84 \uC18C\uC694)");
+      onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uB178\uD2B8\uBD81 \uAC1C\uC694 \u2014 \uCD5C\uB300 30\uCD08 \uC18C\uC694)");
       let summary;
       try {
         const { stdout } = await execFileAsync(
           path,
-          ["query", "notebook", notebookId, modeConfig.summaryPrompt],
-          { timeout: 12e4 }
+          ["notebook", "describe", notebookId, "--json"],
+          { timeout: 6e4 }
         );
-        summary = stdout.trim();
-      } catch (queryErr) {
-        onProgress?.("\u21B3 \uC694\uC57D \uC2E4\uD328: " + execDetail(queryErr));
+        try {
+          const parsed = JSON.parse(stdout.trim());
+          const lines = parsed?.value?.summary ?? [];
+          summary = lines.join("\n\n").trim() || stdout.trim();
+        } catch {
+          summary = stdout.trim();
+        }
+      } catch (describeErr) {
+        onProgress?.("\u21B3 \uC694\uC57D \uC2E4\uD328: " + execDetail(describeErr));
         summary = "\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
       }
       onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(5\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 10\uBD84 \uB300\uAE30)");
