@@ -321,6 +321,11 @@ export default class ClippingsPptPlugin extends Plugin {
 			: newBody;
 
 		await this.app.vault.modify(file, newContent);
+
+		// frontmatter에 summary 속성 추가/업데이트
+		await this.app.fileManager.processFrontMatter(file, (fm) => {
+			fm.summary = summary;
+		});
 	}
 
 	private parseFrontmatter(content: string): {

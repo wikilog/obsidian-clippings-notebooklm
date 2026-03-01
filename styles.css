@@ -272,3 +272,9 @@
 .clippings-ppt-status-error {
 	color: var(--color-red);
 }
+
+.clippings-ppt-version {
+	font-size: 11px;
+	color: var(--text-faint);
+	margin: -8px 0 4px;
+}

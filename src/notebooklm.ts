@@ -420,6 +420,8 @@ export class NotebookLMClient {
 					const revisedId = this.extractArtifactId(stdout);
 					if (revisedId) {
 						artifactId = revisedId;
+						// revise도 비동기 — 완료될 때까지 대기
+						await this.waitForArtifact(path, notebookId, revisedId, onProgress);
 					}
 				} catch {
 					// 브랜딩 제거 실패 시 원본 사용

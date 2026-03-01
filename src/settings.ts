@@ -30,6 +30,7 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		containerEl.createEl("h2", { text: "Clippings NotebookLM" });
+		containerEl.createEl("p", { text: `v${this.plugin.manifest.version}`, cls: "clippings-ppt-version" });
 
 		// NotebookLM 연동 섹션
 		containerEl.createEl("h3", { text: "NotebookLM 연동" });

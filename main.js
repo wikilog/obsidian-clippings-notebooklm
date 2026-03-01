@@ -422,6 +422,7 @@ var NotebookLMClient = class {
           const revisedId = this.extractArtifactId(stdout);
           if (revisedId) {
             artifactId = revisedId;
+            await this.waitForArtifact(path, notebookId, revisedId, onProgress);
           }
         } catch {
         }
@@ -666,6 +667,7 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Clippings NotebookLM" });
+    containerEl.createEl("p", { text: `v${this.plugin.manifest.version}`, cls: "clippings-ppt-version" });
     containerEl.createEl("h3", { text: "NotebookLM \uC5F0\uB3D9" });
     const loginSetting = new import_obsidian3.Setting(containerEl).setName("NotebookLM \uB85C\uADF8\uC778").setDesc("Google \uACC4\uC815\uC73C\uB85C NotebookLM\uC5D0 \uB85C\uADF8\uC778\uD569\uB2C8\uB2E4.");
     const statusEl = loginSetting.descEl.createEl("div", {
@@ -1199,6 +1201,9 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
     }
     const newContent = rawFrontmatter ? rawFrontmatter + "\n" + newBody : newBody;
     await this.app.vault.modify(file, newContent);
+    await this.app.fileManager.processFrontMatter(file, (fm) => {
+      fm.summary = summary;
+    });
   }
   parseFrontmatter(content) {
     const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
