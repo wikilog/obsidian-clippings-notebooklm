@@ -42,6 +42,12 @@
 	opacity: 0.88;
 }
 
+.clippings-sidebar-generate-btn--running,
+.clippings-sidebar-generate-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 .clippings-sidebar-hint {
 	font-size: 11px;
 	color: var(--text-muted);

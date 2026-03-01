@@ -763,6 +763,8 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
     this.historyListEl = null;
+    this.generateBtn = null;
+    this.hintEl = null;
     this.plugin = plugin;
   }
   getViewType() {
@@ -790,7 +792,9 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       cls: "clippings-sidebar-generate-btn",
       text: "NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30"
     });
+    this.generateBtn = btn;
     btn.addEventListener("click", async () => {
+      if (this.plugin.isRunning) return;
       const activeFile = this.plugin.app.workspace.getActiveFile();
       if (!activeFile) {
         return;
@@ -806,16 +810,36 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       }
     });
     const hintEl = contentEl.createEl("div", { cls: "clippings-sidebar-hint" });
+    this.hintEl = hintEl;
     this.updateActiveFileHint(hintEl);
     this.registerEvent(
       this.plugin.app.workspace.on("active-leaf-change", () => {
-        this.updateActiveFileHint(hintEl);
+        if (!this.plugin.isRunning) this.updateActiveFileHint(hintEl);
       })
     );
+    this.refreshBtn();
     contentEl.createEl("hr", { cls: "clippings-sidebar-divider" });
     contentEl.createEl("div", { cls: "clippings-sidebar-section-title", text: "\uC791\uC5C5 \uB0B4\uC5ED" });
     this.historyListEl = contentEl.createEl("div", { cls: "clippings-sidebar-history" });
     this.renderHistory();
+  }
+  /** isRunning 상태에 따라 버튼과 힌트를 갱신한다. */
+  refreshBtn() {
+    if (!this.generateBtn) return;
+    if (this.plugin.isRunning) {
+      this.generateBtn.disabled = true;
+      this.generateBtn.textContent = "\u23F3 \uC791\uC5C5 \uC9C4\uD589 \uC911...";
+      this.generateBtn.addClass("clippings-sidebar-generate-btn--running");
+      if (this.hintEl) {
+        this.hintEl.textContent = "\uC644\uB8CC \uD6C4 \uC0AC\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4";
+        this.hintEl.removeClass("clippings-sidebar-hint-active");
+      }
+    } else {
+      this.generateBtn.disabled = false;
+      this.generateBtn.textContent = "NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30";
+      this.generateBtn.removeClass("clippings-sidebar-generate-btn--running");
+      if (this.hintEl) this.updateActiveFileHint(this.hintEl);
+    }
   }
   showHint(msg) {
     const existing = this.contentEl.querySelector(".clippings-sidebar-toast");
@@ -844,6 +868,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
   }
   renderHistory() {
     if (!this.historyListEl) return;
+    this.refreshBtn();
     this.historyListEl.empty();
     const history = this.plugin.history;
     if (history.length === 0) {
@@ -957,6 +982,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
       id: "generate-ppt-notebooklm",
       name: "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30",
       checkCallback: (checking) => {
+        if (this.isRunning) return false;
         const view = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
         if (!view?.file) return false;
         if (!view.file.path.startsWith(this.settings.clippingsFolder + "/")) {

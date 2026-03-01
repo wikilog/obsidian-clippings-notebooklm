@@ -19,6 +19,8 @@ export interface HistoryItem {
 export class ClippingsSidebarView extends ItemView {
 	private plugin: ClippingsPptPlugin;
 	private historyListEl: HTMLElement | null = null;
+	private generateBtn: HTMLButtonElement | null = null;
+	private hintEl: HTMLElement | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ClippingsPptPlugin) {
 		super(leaf);
@@ -60,8 +62,10 @@ export class ClippingsSidebarView extends ItemView {
 			cls: "clippings-sidebar-generate-btn",
 			text: "NotebookLM으로 요약하기",
 		});
+		this.generateBtn = btn;
 
 		btn.addEventListener("click", async () => {
+			if (this.plugin.isRunning) return;
 			const activeFile = this.plugin.app.workspace.getActiveFile();
 			if (!activeFile) {
 				return;
@@ -80,13 +84,17 @@ export class ClippingsSidebarView extends ItemView {
 
 		// 현재 파일 표시
 		const hintEl = contentEl.createEl("div", { cls: "clippings-sidebar-hint" });
+		this.hintEl = hintEl;
 		this.updateActiveFileHint(hintEl);
 
 		this.registerEvent(
 			this.plugin.app.workspace.on("active-leaf-change", () => {
-				this.updateActiveFileHint(hintEl);
+				if (!this.plugin.isRunning) this.updateActiveFileHint(hintEl);
 			})
 		);
+
+		// 초기 버튼 상태 설정
+		this.refreshBtn();
 
 		// 구분선
 		contentEl.createEl("hr", { cls: "clippings-sidebar-divider" });
@@ -96,6 +104,25 @@ export class ClippingsSidebarView extends ItemView {
 
 		this.historyListEl = contentEl.createEl("div", { cls: "clippings-sidebar-history" });
 		this.renderHistory();
+	}
+
+	/** isRunning 상태에 따라 버튼과 힌트를 갱신한다. */
+	private refreshBtn(): void {
+		if (!this.generateBtn) return;
+		if (this.plugin.isRunning) {
+			this.generateBtn.disabled = true;
+			this.generateBtn.textContent = "⏳ 작업 진행 중...";
+			this.generateBtn.addClass("clippings-sidebar-generate-btn--running");
+			if (this.hintEl) {
+				this.hintEl.textContent = "완료 후 사용 가능합니다";
+				this.hintEl.removeClass("clippings-sidebar-hint-active");
+			}
+		} else {
+			this.generateBtn.disabled = false;
+			this.generateBtn.textContent = "NotebookLM으로 요약하기";
+			this.generateBtn.removeClass("clippings-sidebar-generate-btn--running");
+			if (this.hintEl) this.updateActiveFileHint(this.hintEl);
+		}
 	}
 
 	private showHint(msg: string): void {
@@ -130,6 +157,7 @@ export class ClippingsSidebarView extends ItemView {
 
 	renderHistory(): void {
 		if (!this.historyListEl) return;
+		this.refreshBtn();
 		this.historyListEl.empty();
 
 		const history = this.plugin.history;

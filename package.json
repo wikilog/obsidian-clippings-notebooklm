@@ -1,6 +1,6 @@
 {
 	"name": "clippings-notebooklm",
-	"version": "0.6.4",
+	"version": "0.6.5",
 	"description": "Generate PPT presentations from Clippings notes using NotebookLM AI.",
 	"main": "main.js",
 	"scripts": {

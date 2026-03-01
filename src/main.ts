@@ -56,6 +56,7 @@ export default class ClippingsPptPlugin extends Plugin {
 			id: "generate-ppt-notebooklm",
 			name: "NotebookLM으로 PPT 만들기",
 			checkCallback: (checking: boolean) => {
+				if (this.isRunning) return false;
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (!view?.file) return false;
 				if (!view.file.path.startsWith(this.settings.clippingsFolder + "/")) {
