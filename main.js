@@ -567,7 +567,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       const modal = new ModeSelectionModal(this.plugin.app);
       const mode = await modal.open();
       if (mode) {
-        await this.plugin.handleGeneratePpt(activeFile, null, mode);
+        await this.plugin.handleGeneratePpt(activeFile, mode);
       }
     });
     const hintEl = contentEl.createEl("div", { cls: "clippings-sidebar-hint" });
@@ -682,21 +682,6 @@ var NOTEBOOKLM_ICON_SVG = `
 <line x1="36" y1="60" x2="78" y2="60" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
 <line x1="36" y1="75" x2="78" y2="75" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
 `;
-function setButtonContent(btn, icon, text) {
-  btn.empty();
-  const iconSpan = document.createElement("span");
-  iconSpan.className = "clippings-ppt-btn-icon";
-  iconSpan.textContent = icon;
-  btn.appendChild(iconSpan);
-  btn.appendText(" " + text);
-}
-function setButtonLoading(btn, modeLabel) {
-  btn.empty();
-  const spinner = document.createElement("span");
-  spinner.className = "clippings-ppt-spinner";
-  btn.appendChild(spinner);
-  btn.appendText(` ${modeLabel} \uC0DD\uC131 \uC911...`);
-}
 var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
   constructor() {
     super(...arguments);
@@ -717,38 +702,6 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
     this.addRibbonIcon(NOTEBOOKLM_ICON_ID, "Clippings NotebookLM", () => {
       this.toggleSidebar();
     });
-    this.registerMarkdownPostProcessor((el, ctx) => {
-      const filePath = ctx.sourcePath;
-      if (!filePath.startsWith(this.settings.clippingsFolder + "/")) {
-        return;
-      }
-      const relativePath = filePath.slice(this.settings.clippingsFolder.length + 1);
-      if (relativePath.includes("/")) {
-        return;
-      }
-      if (el.querySelector(".clippings-ppt-btn-container")) {
-        return;
-      }
-      const firstChild = el.firstElementChild;
-      if (!firstChild) return;
-      const container = document.createElement("div");
-      container.className = "clippings-ppt-btn-container";
-      const btn = document.createElement("button");
-      btn.className = "clippings-ppt-btn";
-      setButtonContent(btn, "\u{1F4D3}", "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30");
-      btn.addEventListener("click", async () => {
-        const file = this.app.vault.getAbstractFileByPath(filePath);
-        if (file instanceof import_obsidian5.TFile) {
-          const modal = new ModeSelectionModal(this.app);
-          const mode = await modal.open();
-          if (mode) {
-            await this.handleGeneratePpt(file, btn, mode);
-          }
-        }
-      });
-      container.appendChild(btn);
-      el.insertBefore(container, firstChild);
-    });
     this.addCommand({
       id: "generate-ppt-notebooklm",
       name: "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30",
@@ -762,7 +715,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
           const modal = new ModeSelectionModal(this.app);
           modal.open().then((mode) => {
             if (mode && view.file) {
-              this.handleGeneratePpt(view.file, null, mode);
+              this.handleGeneratePpt(view.file, mode);
             }
           });
         }
@@ -789,15 +742,10 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
       }
     });
   }
-  async handleGeneratePpt(file, btn, mode) {
+  async handleGeneratePpt(file, mode) {
     const modeConfig = MODES[mode];
     if (this.isRunning) return;
     this.isRunning = true;
-    if (btn) {
-      btn.disabled = true;
-      setButtonLoading(btn, modeConfig.label);
-      btn.addClass("clippings-ppt-btn-loading");
-    }
     const historyItem = {
       title: file.basename,
       mode: modeConfig.label,
@@ -856,11 +804,6 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
       console.error("[Clippings NotebookLM] PPT \uC0DD\uC131 \uC624\uB958:", error);
     } finally {
       this.isRunning = false;
-      if (btn) {
-        btn.disabled = false;
-        setButtonContent(btn, "\u{1F4D3}", "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30");
-        btn.removeClass("clippings-ppt-btn-loading");
-      }
     }
   }
   classifyError(msg) {

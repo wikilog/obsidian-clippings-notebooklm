@@ -74,7 +74,7 @@ export class ClippingsSidebarView extends ItemView {
 			const modal = new ModeSelectionModal(this.plugin.app);
 			const mode = await modal.open();
 			if (mode) {
-				await this.plugin.handleGeneratePpt(activeFile as TFile, null, mode);
+				await this.plugin.handleGeneratePpt(activeFile as TFile, mode);
 			}
 		});
 

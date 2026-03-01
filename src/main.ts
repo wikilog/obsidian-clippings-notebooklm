@@ -23,22 +23,6 @@ import {
 	HistoryItem,
 } from "./sidebar";
 
-function setButtonContent(btn: HTMLButtonElement, icon: string, text: string): void {
-	btn.empty();
-	const iconSpan = document.createElement("span");
-	iconSpan.className = "clippings-ppt-btn-icon";
-	iconSpan.textContent = icon;
-	btn.appendChild(iconSpan);
-	btn.appendText(" " + text);
-}
-
-function setButtonLoading(btn: HTMLButtonElement, modeLabel: string): void {
-	btn.empty();
-	const spinner = document.createElement("span");
-	spinner.className = "clippings-ppt-spinner";
-	btn.appendChild(spinner);
-	btn.appendText(` ${modeLabel} 생성 중...`);
-}
 
 export default class ClippingsPptPlugin extends Plugin {
 	settings: ClippingsPptSettings = DEFAULT_SETTINGS;
@@ -64,49 +48,6 @@ export default class ClippingsPptPlugin extends Plugin {
 			this.toggleSidebar();
 		});
 
-		// Clippings 파일에 버튼 주입
-		this.registerMarkdownPostProcessor((el, ctx) => {
-			const filePath = ctx.sourcePath;
-			if (!filePath.startsWith(this.settings.clippingsFolder + "/")) {
-				return;
-			}
-
-			// 하위 폴더(PDF 등)는 제외
-			const relativePath = filePath.slice(this.settings.clippingsFolder.length + 1);
-			if (relativePath.includes("/")) {
-				return;
-			}
-
-			if (el.querySelector(".clippings-ppt-btn-container")) {
-				return;
-			}
-
-			const firstChild = el.firstElementChild;
-			if (!firstChild) return;
-
-			const container = document.createElement("div");
-			container.className = "clippings-ppt-btn-container";
-
-			const btn = document.createElement("button");
-			btn.className = "clippings-ppt-btn";
-			setButtonContent(btn, "\uD83D\uDCD3", "NotebookLM으로 PPT 만들기");
-
-			btn.addEventListener("click", async () => {
-				const file = this.app.vault.getAbstractFileByPath(filePath);
-				if (file instanceof TFile) {
-					// 모드 선택 모달 표시
-					const modal = new ModeSelectionModal(this.app);
-					const mode = await modal.open();
-					if (mode) {
-						await this.handleGeneratePpt(file, btn, mode);
-					}
-				}
-			});
-
-			container.appendChild(btn);
-			el.insertBefore(container, firstChild);
-		});
-
 		// Command Palette 커맨드
 		this.addCommand({
 			id: "generate-ppt-notebooklm",
@@ -121,7 +62,7 @@ export default class ClippingsPptPlugin extends Plugin {
 					const modal = new ModeSelectionModal(this.app);
 					modal.open().then((mode) => {
 						if (mode && view.file) {
-							this.handleGeneratePpt(view.file, null, mode);
+							this.handleGeneratePpt(view.file, mode);
 						}
 					});
 				}
@@ -153,7 +94,6 @@ export default class ClippingsPptPlugin extends Plugin {
 
 	async handleGeneratePpt(
 		file: TFile,
-		btn: HTMLButtonElement | null,
 		mode: ReportMode
 	): Promise<void> {
 		const modeConfig = MODES[mode];
@@ -161,12 +101,6 @@ export default class ClippingsPptPlugin extends Plugin {
 		// 동시 실행 방지
 		if (this.isRunning) return;
 		this.isRunning = true;
-
-		if (btn) {
-			btn.disabled = true;
-			setButtonLoading(btn, modeConfig.label);
-			btn.addClass("clippings-ppt-btn-loading");
-		}
 
 		// 히스토리에 진행 중 항목 추가
 		const historyItem: HistoryItem = {
@@ -237,11 +171,6 @@ export default class ClippingsPptPlugin extends Plugin {
 			console.error("[Clippings NotebookLM] PPT 생성 오류:", error);
 		} finally {
 			this.isRunning = false;
-			if (btn) {
-				btn.disabled = false;
-				setButtonContent(btn, "\uD83D\uDCD3", "NotebookLM으로 PPT 만들기");
-				btn.removeClass("clippings-ppt-btn-loading");
-			}
 		}
 	}
 
