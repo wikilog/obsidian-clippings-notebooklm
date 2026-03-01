@@ -1,18 +1,44 @@
 # Dependencies
 node_modules/
 
-# Build output
-main.js
+# Environment variables (local dev vault path etc.)
+.env
+.env.local
+
+# Build artifacts
+*.js.map
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V2
+.Trashes
+
+# Windows
+Thumbs.db
+
+# Logs (전체 디렉토리)
+logs/
+
+# Local documentation (빌드 산출물, 개인 메모 등)
+docs/
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
 *.swo
 
-# OS
-.DS_Store
-Thumbs.db
-
 # Debug
 npm-debug.log*
+
+# Claude Code local settings (개인 워크스테이션 설정)
+.claude/
+
+# OMC (oh-my-claudecode) runtime state
+.omc/
+
+# bkit / PDCA 로컬 상태 파일
+**/.bkit-memory.json
+**/.pdca-status.json

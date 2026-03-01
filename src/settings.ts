@@ -1,16 +1,18 @@
-import { App, PluginSettingTab, Setting, Notice } from "obsidian";
+import { App, PluginSettingTab, Setting } from "obsidian";
 import type ClippingsPptPlugin from "./main";
 
 export interface ClippingsPptSettings {
 	nlmPath: string;
 	clippingsFolder: string;
 	outputSubfolder: string;
+	removeBranding: boolean;
 }
 
 export const DEFAULT_SETTINGS: ClippingsPptSettings = {
 	nlmPath: "nlm",
 	clippingsFolder: "Clippings",
 	outputSubfolder: "PDF",
+	removeBranding: true,
 };
 
 export class ClippingsPptSettingTab extends PluginSettingTab {
@@ -27,7 +29,7 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 
 		containerEl.createEl("h2", { text: "Clippings PPT Generator" });
 
-		// NotebookLM 로그인 섹션
+		// NotebookLM 연동 섹션
 		containerEl.createEl("h3", { text: "NotebookLM 연동" });
 
 		const loginSetting = new Setting(containerEl)
@@ -40,23 +42,33 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 
 		this.checkLoginStatus(statusEl);
 
+		// 브라우저 로그인 버튼 (비차단 — OAuth 흐름을 별도 프로세스로 실행)
 		loginSetting.addButton((button) =>
-			button.setButtonText("로그인").onClick(async () => {
+			button.setButtonText("🌐 브라우저로 로그인").onClick(async () => {
 				button.setDisabled(true);
-				button.setButtonText("로그인 중...");
-				const success = await this.plugin.nlmClient.login();
+				await this.plugin.nlmClient.launchLogin();
 				button.setDisabled(false);
-				button.setButtonText("로그인");
-				this.checkLoginStatus(statusEl);
-				if (!success) {
-					new Notice("로그인에 실패했습니다. nlm CLI 설치를 확인하세요.");
-				}
+			})
+		);
+
+		// 상태 확인 버튼 (로그인 완료 후 클릭)
+		loginSetting.addButton((button) =>
+			button.setButtonText("상태 확인").onClick(async () => {
+				button.setDisabled(true);
+				button.setButtonText("확인 중...");
+				await this.checkLoginStatus(statusEl);
+				button.setDisabled(false);
+				button.setButtonText("상태 확인");
 			})
 		);
 
 		new Setting(containerEl)
 			.setName("nlm CLI 경로")
-			.setDesc("notebooklm-mcp-cli의 nlm 실행 파일 경로")
+			.setDesc(
+				"notebooklm-mcp-cli의 nlm 실행 파일 경로. " +
+				"기본값 'nlm'으로 찾지 못할 경우 절대 경로를 입력하세요. " +
+				"예: /Users/yourname/.local/bin/nlm"
+			)
 			.addText((text) =>
 				text
 					.setPlaceholder("nlm")
@@ -64,6 +76,21 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.nlmPath = value || "nlm";
 						this.plugin.nlmClient.setPath(this.plugin.settings.nlmPath);
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("NotebookLM 브랜딩 제거")
+			.setDesc(
+				"생성된 슬라이드에서 NotebookLM 로고를 제거합니다. " +
+				"슬라이드 수정이 추가로 실행되어 약간의 시간이 더 소요됩니다."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.removeBranding)
+					.onChange(async (value) => {
+						this.plugin.settings.removeBranding = value;
 						await this.plugin.saveSettings();
 					})
 			);
@@ -101,24 +128,22 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 	private async checkLoginStatus(statusEl: HTMLElement): Promise<void> {
 		statusEl.empty();
 		statusEl.setText("확인 중...");
+		statusEl.removeClass("clippings-ppt-status-ok", "clippings-ppt-status-error");
 
 		const installed = await this.plugin.nlmClient.isInstalled();
 		if (!installed) {
-			statusEl.setText("nlm CLI 미설치");
+			statusEl.setText("⚠ nlm CLI 미설치 — 터미널에서: uv tool install notebooklm-mcp-cli");
 			statusEl.addClass("clippings-ppt-status-error");
 			return;
 		}
 
 		const loggedIn = await this.plugin.nlmClient.isLoggedIn();
-		statusEl.empty();
 		if (loggedIn) {
-			statusEl.setText("로그인됨");
+			statusEl.setText("✓ 로그인됨");
 			statusEl.addClass("clippings-ppt-status-ok");
-			statusEl.removeClass("clippings-ppt-status-error");
 		} else {
-			statusEl.setText("로그인 필요");
+			statusEl.setText("✗ 로그인 필요 — '브라우저로 로그인' 버튼을 클릭하세요");
 			statusEl.addClass("clippings-ppt-status-error");
-			statusEl.removeClass("clippings-ppt-status-ok");
 		}
 	}
 }

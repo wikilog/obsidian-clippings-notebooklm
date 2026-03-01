@@ -1,0 +1,682 @@
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/main.ts
+var main_exports = {};
+__export(main_exports, {
+  default: () => ClippingsPptPlugin
+});
+module.exports = __toCommonJS(main_exports);
+var import_obsidian4 = require("obsidian");
+
+// src/notebooklm.ts
+var import_obsidian = require("obsidian");
+var import_child_process = require("child_process");
+var import_util = require("util");
+var import_os = require("os");
+var import_path = require("path");
+var import_promises = require("fs/promises");
+
+// src/prompts.ts
+var MODES = {
+  detailed: {
+    label: "\uC790\uC138\uD55C \uB9AC\uD3EC\uD2B8",
+    description: "\uC815\uCC45 \uACB0\uC815\uAD8C\uC790, \uD559\uACC4 \uC804\uBB38\uAC00, \uC5C5\uACC4 \uBCA0\uD14C\uB791 \uB300\uC0C1",
+    icon: "\u{1F4CB}",
+    summaryPrompt: [
+      "\uC774 \uB0B4\uC6A9\uC744 \uC815\uCC45 \uACB0\uC815\uAD8C\uC790\uC640 15\uB144 \uC774\uC0C1 \uACBD\uB825 \uC804\uBB38\uAC00\uB97C \uC704\uD574 \uC694\uC57D\uD558\uC138\uC694.",
+      "\uC804\uBB38 \uC6A9\uC5B4\uB97C \uC790\uC720\uB86D\uAC8C \uC0AC\uC6A9\uD558\uB418, \uAC01 \uD575\uC2EC \uAC1C\uB150\uC5D0 '\uC65C \uC774\uAC8C \uC911\uC694\uD55C\uAC00'\uB97C \uBA85\uC2DC\uD558\uC138\uC694.",
+      "\uC778\uACFC\uAD00\uACC4\uB97C \uBA85\uD655\uD788 \uC11C\uC220\uD558\uACE0, \uC218\uB3D9\uD0DC\uC640 \uBAA8\uD638\uD55C \uD45C\uD604\uC744 \uBC30\uC81C\uD558\uC138\uC694.",
+      "\uC8FC\uC694 \uADFC\uAC70(\uB370\uC774\uD130, \uC0AC\uB840, \uC778\uC6A9)\uB97C \uD3EC\uD568\uD558\uACE0,",
+      "\uB9AC\uB354\uAC00 \uB0B4\uC77C \uC2E4\uD589\uD560 \uC218 \uC788\uB294 Action Item 3\uAC00\uC9C0\uB85C \uB9C8\uBB34\uB9AC\uD558\uC138\uC694.",
+      "\uD55C\uAD6D\uC5B4, \uC804\uBB38 \uBE44\uC988\uB2C8\uC2A4 \uC6A9\uC5B4\uB97C \uC0AC\uC6A9\uD558\uC138\uC694."
+    ].join("\n"),
+    slidesFormat: "detailed_deck",
+    slidesLength: "default",
+    focusPrompt: "\uC804\uBB38\uAC00(15\uB144 \uC774\uC0C1 \uACBD\uB825) \uB300\uC0C1 \uC2EC\uCE35 \uBD84\uC11D \uB9AC\uD3EC\uD2B8. \uC804\uBB38 \uC6A9\uC5B4 \uC790\uC720 \uC0AC\uC6A9, \uAC01 \uC139\uC158 \uC2DC\uC791\uC5D0 '\uC65C \uC911\uC694\uD55C\uAC00' \uB9E5\uB77D \uC2AC\uB77C\uC774\uB4DC 1\uC7A5 \uD3EC\uD568. \uC778\uACFC\uAD00\uACC4 \uBA85\uD655\uD788 \uC11C\uC220, \uC218\uB3D9\uD0DC\xB7\uBAA8\uD638\uD55C \uD45C\uD604 \uAE08\uC9C0. \uB370\uC774\uD130\xB7\uC0AC\uB840\xB7\uC778\uC6A9\uC73C\uB85C \uC8FC\uC7A5 \uB4B7\uBC1B\uCE68. \uD45C\uC9C0\uC5D0 \uD575\uC2EC \uC8FC\uC7A5 \uD55C \uBB38\uC7A5, \uB9C8\uBB34\uB9AC\uC5D0 \uB9AC\uB354\uAC00 \uB0B4\uC77C \uC2E4\uD589\uD560 Action Item 3\uAC00\uC9C0. \uAD8C\uC704 \uC788\uACE0 \uBD84\uC11D\uC801\uC778 \uC5B4\uC870. 8~12\uC2AC\uB77C\uC774\uB4DC \uAD6C\uC131."
+  },
+  executive: {
+    label: "\uD575\uC2EC \uB9AC\uD3EC\uD2B8",
+    description: "\uBC14\uC05C C-\uB808\uBCA8 \uC784\uC6D0, \uC758\uC0AC\uACB0\uC815\uC790 \uB300\uC0C1",
+    icon: "\u26A1",
+    summaryPrompt: [
+      "\uC774 \uB0B4\uC6A9\uC744 C-\uB808\uBCA8 \uC784\uC6D0\uC744 \uC704\uD574 \uD575\uC2EC\uB9CC 3\uC904\uB85C \uC694\uC57D\uD558\uC138\uC694.",
+      "\uACB0\uB860\uC744 \uBA3C\uC800 \uC81C\uC2DC\uD558\uACE0, \uAC01 \uC904\uC5D0 \uC218\uCE58\uB098 \uC0AC\uB840\uB97C 1\uAC1C \uC774\uC0C1 \uD3EC\uD568\uD558\uC138\uC694.",
+      "5\uCD08 \uC548\uC5D0 \uD30C\uC545 \uAC00\uB2A5\uD55C \uB2E8\uB3C4\uC9C1\uC785\uC801 \uBB38\uC7A5\uC73C\uB85C \uC791\uC131\uD558\uC138\uC694.",
+      "\uBD88\uD544\uC694\uD55C \uC218\uC2DD\uC5B4, \uAE34 \uBB38\uB2E8 \uC644\uC804 \uAE08\uC9C0.",
+      "\uB9C8\uC9C0\uB9C9\uC5D0 Yes/No\uB85C \uB2F5\uD560 \uC218 \uC788\uB294 \uC758\uC0AC\uACB0\uC815 \uC9C8\uBB38 1\uAC1C\uB97C \uCD94\uAC00\uD558\uC138\uC694.",
+      "\uD55C\uAD6D\uC5B4, \uAC04\uACB0\uD55C \uBE44\uC988\uB2C8\uC2A4 \uC5B8\uC5B4\uB97C \uC0AC\uC6A9\uD558\uC138\uC694."
+    ].join("\n"),
+    slidesFormat: "presenter_slides",
+    slidesLength: "short",
+    focusPrompt: "\uD558\uB8E8 \uC218\uC2ED \uAC1C \uBCF4\uACE0\uB97C \uBC1B\uB294 C\uB808\uBCA8 \uC784\uC6D0 \uB300\uC0C1. \uACB0\uB860\uC744 \uC2AC\uB77C\uC774\uB4DC \uC81C\uBAA9\uC73C\uB85C \uBC14\uB85C \uC81C\uC2DC. \uC2AC\uB77C\uC774\uB4DC 1\uC7A5\uC744 5\uCD08 \uC548\uC5D0 \uD30C\uC545 \uAC00\uB2A5\uD574\uC57C \uD568. \uC218\uCE58\xB7\uC0AC\uB840 \uBC18\uB4DC\uC2DC 1\uAC1C \uC774\uC0C1 \uD3EC\uD568. \uBD88\uD544\uC694\uD55C \uC218\uC2DD\uC5B4\xB7\uAE34 \uBB38\uB2E8 \uAE08\uC9C0. \uD45C\uC9C0\uB294 \uACB0\uB860 \uADF8\uB300\uB85C \uC81C\uBAA9(\uC608: '\uD575\uC2EC\uC740 \uADDC\uCE59\uC774\uB2E4'), \uB9C8\uBB34\uB9AC\uB294 Yes/No \uC758\uC0AC\uACB0\uC815 \uC9C8\uBB38 1\uAC1C. \uB2E8\uB3C4\uC9C1\uC785\uC801 \uC5B4\uC870. 5~8\uC2AC\uB77C\uC774\uB4DC \uAD6C\uC131."
+  },
+  easy: {
+    label: "\uC26C\uC6B4 \uB9AC\uD3EC\uD2B8",
+    description: "\uB2E4\uC591\uD55C \uBC30\uACBD\uC758 \uD63C\uD569 \uCCAD\uC911, \uBE44\uC804\uBB38\uAC00 \uD3EC\uD568",
+    icon: "\u{1F331}",
+    summaryPrompt: [
+      "\uC774 \uB0B4\uC6A9\uC744 \uBE44\uC804\uBB38\uAC00\uB3C4 \uC774\uD574\uD560 \uC218 \uC788\uB3C4\uB85D \uC27D\uAC8C \uC694\uC57D\uD558\uC138\uC694.",
+      "\uC804\uBB38 \uC6A9\uC5B4\uB97C \uC0AC\uC6A9\uD560 \uACBD\uC6B0 \uC989\uC2DC 1~2\uBB38\uC7A5\uC73C\uB85C \uD480\uC5B4 \uC124\uBA85\uD558\uC138\uC694.",
+      "\uC77C\uC0C1\uC801 \uBE44\uC720\uB098 \uC2A4\uD1A0\uB9AC\uB97C \uD65C\uC6A9\uD574 \uD575\uC2EC\uC744 \uC804\uB2EC\uD558\uC138\uC694.",
+      "\uBCF5\uC7A1\uD55C \uD504\uB808\uC784\uC6CC\uD06C\uBCF4\uB2E4 \uC2A4\uD1A0\uB9AC\uD154\uB9C1\uC744 \uC6B0\uC120\uD558\uC138\uC694.",
+      "\uB9C8\uC9C0\uB9C9\uC5D0 \uB2F9\uC7A5 \uB0B4\uC77C \uD574\uBCFC \uC218 \uC788\uB294 \uAC04\uB2E8\uD55C \uC2E4\uCC9C 1\uAC00\uC9C0\uB97C \uC81C\uC548\uD558\uC138\uC694.",
+      "\uD55C\uAD6D\uC5B4, \uC26C\uC6B4 \uC77C\uC0C1 \uC5B8\uC5B4\uB97C \uC0AC\uC6A9\uD558\uC138\uC694."
+    ].join("\n"),
+    slidesFormat: "detailed_deck",
+    slidesLength: "short",
+    focusPrompt: "\uBE44\uC804\uBB38\uAC00\uAC00 \uD3EC\uD568\uB41C \uD63C\uD569 \uCCAD\uC911 \uB300\uC0C1. \uD45C\uC9C0\uB294 \uB204\uAD6C\uB098 \uACF5\uAC10\uD560 \uC218 \uC788\uB294 \uC9C8\uBB38\uD615 \uC81C\uBAA9. \uB3C4\uC785\uC740 \uC77C\uC0C1\uC801 \uBE44\uC720\xB7\uC2A4\uD1A0\uB9AC\uB85C \uC2DC\uC791. \uC804\uBB38 \uC6A9\uC5B4 \uCD5C\uC18C\uD654, \uC0AC\uC6A9 \uC2DC \uC989\uC2DC 1~2\uBB38\uC7A5\uC73C\uB85C \uD480\uC5B4 \uC124\uBA85. \uCD94\uC0C1 \uAC1C\uB150\uB9C8\uB2E4 \uAD6C\uCCB4\uC801 \uC0C1\uD669 \uC608\uC2DC 1\uAC1C \uD544\uC218. \uB9C8\uBB34\uB9AC\uB294 \uB0B4\uC77C \uBC14\uB85C \uD574\uBCFC \uC218 \uC788\uB294 \uAC04\uB2E8\uD55C \uC2E4\uCC9C 1\uAC00\uC9C0. \uCE5C\uADFC\uD558\uACE0 \uACA9\uB824\uD558\uB294 \uC5B4\uC870. 5~8\uC2AC\uB77C\uC774\uB4DC \uAD6C\uC131."
+  }
+};
+
+// src/notebooklm.ts
+var execFileAsync = (0, import_util.promisify)(import_child_process.execFile);
+var NLM_SEARCH_DIRS = [
+  (0, import_path.join)((0, import_os.homedir)(), ".local", "bin"),
+  // uv tool install (default)
+  (0, import_path.join)((0, import_os.homedir)(), ".cargo", "bin"),
+  // cargo install
+  "/opt/homebrew/bin",
+  // macOS Homebrew (Apple Silicon)
+  "/usr/local/bin",
+  // macOS Homebrew (Intel) / manual
+  "/usr/bin"
+];
+async function findNlmBinary(configured) {
+  if (configured.startsWith("/") || configured.startsWith("~")) {
+    return configured;
+  }
+  try {
+    await execFileAsync(configured, ["--version"], { timeout: 5e3 });
+    return configured;
+  } catch {
+  }
+  const binaryName = configured.split("/").pop() || configured;
+  for (const dir of NLM_SEARCH_DIRS) {
+    const candidate = (0, import_path.join)(dir, binaryName);
+    try {
+      await (0, import_promises.access)(candidate, import_promises.constants.X_OK);
+      return candidate;
+    } catch {
+    }
+  }
+  return configured;
+}
+var NotebookLMClient = class {
+  constructor(nlmPath = "nlm") {
+    this.resolvedPath = null;
+    this.nlmPath = nlmPath;
+  }
+  setPath(path) {
+    this.nlmPath = path;
+    this.resolvedPath = null;
+  }
+  /** Returns the resolved binary path, searching common locations if needed. */
+  async getPath() {
+    if (!this.resolvedPath) {
+      this.resolvedPath = await findNlmBinary(this.nlmPath);
+    }
+    return this.resolvedPath;
+  }
+  async isInstalled() {
+    try {
+      const path = await this.getPath();
+      await execFileAsync(path, ["--version"], { timeout: 5e3 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  async isLoggedIn() {
+    try {
+      const path = await this.getPath();
+      const { stdout } = await execFileAsync(
+        path,
+        ["notebook", "list"],
+        { timeout: 15e3 }
+      );
+      return !stdout.includes("not logged in") && !stdout.includes("login");
+    } catch {
+      return false;
+    }
+  }
+  /**
+   * Launch the nlm OAuth browser login flow without blocking Obsidian.
+   * The process is spawned detached so the browser opens and the OAuth
+   * callback server runs independently. Returns true if the launch succeeded.
+   */
+  async launchLogin() {
+    const installed = await this.isInstalled();
+    if (!installed) {
+      new import_obsidian.Notice(
+        "nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uD130\uBBF8\uB110\uC5D0\uC11C \uBA3C\uC800 \uC124\uCE58\uD558\uC138\uC694:\n\n  uv tool install notebooklm-mcp-cli\n\n\uC124\uCE58 \uD6C4 \uC124\uC815\uC5D0\uC11C \uACBD\uB85C\uB97C \uD655\uC778\uD558\uAC70\uB098\n\uC808\uB300 \uACBD\uB85C(\uC608: /Users/you/.local/bin/nlm)\uB97C \uC9C1\uC811 \uC785\uB825\uD558\uC138\uC694.",
+        12e3
+      );
+      return false;
+    }
+    try {
+      const path = await this.getPath();
+      const proc = (0, import_child_process.spawn)(path, ["login"], {
+        detached: true,
+        stdio: "ignore"
+      });
+      proc.unref();
+      new import_obsidian.Notice(
+        "\u{1F310} \uBE0C\uB77C\uC6B0\uC800\uAC00 \uC5F4\uB9BD\uB2C8\uB2E4. Google \uACC4\uC815\uC73C\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694.\n\uC644\uB8CC \uD6C4 '\uC0C1\uD0DC \uD655\uC778' \uBC84\uD2BC\uC744 \uB20C\uB7EC \uD655\uC778\uD558\uC138\uC694.",
+        8e3
+      );
+      return true;
+    } catch (error) {
+      new import_obsidian.Notice("\uB85C\uADF8\uC778 \uC2E4\uD589 \uC2E4\uD328: " + String(error), 8e3);
+      return false;
+    }
+  }
+  async generateContent(title, content, mode, removeBranding = true, onProgress) {
+    const path = await this.getPath();
+    const installed = await this.isInstalled();
+    if (!installed) {
+      throw new Error(
+        "nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uD130\uBBF8\uB110\uC5D0\uC11C 'uv tool install notebooklm-mcp-cli'\uB97C \uC2E4\uD589\uD558\uAC70\uB098,\n\uC124\uC815\uC5D0\uC11C nlm \uACBD\uB85C\uB97C \uC808\uB300 \uACBD\uB85C\uB85C \uC9C0\uC815\uD558\uC138\uC694.\n\uC608: /Users/yourname/.local/bin/nlm"
+      );
+    }
+    const loggedIn = await this.isLoggedIn();
+    if (!loggedIn) {
+      throw new Error(
+        "NotebookLM\uC5D0 \uB85C\uADF8\uC778\uB418\uC5B4 \uC788\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.\n\uC124\uC815 \uD0ED\uC5D0\uC11C '\uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778' \uBC84\uD2BC\uC744 \uD074\uB9AD\uD558\uAC70\uB098,\n\uD130\uBBF8\uB110\uC5D0\uC11C 'nlm login'\uC744 \uC2E4\uD589\uD558\uC138\uC694."
+      );
+    }
+    const modeConfig = MODES[mode];
+    onProgress?.("1/5  \uB178\uD2B8\uBD81 \uC0DD\uC131 \uC911...");
+    const notebookName = `ppt-${Date.now()}`;
+    let notebookId;
+    try {
+      const { stdout } = await execFileAsync(
+        path,
+        ["notebook", "create", notebookName],
+        { timeout: 3e4 }
+      );
+      notebookId = this.extractId(stdout);
+    } catch (error) {
+      throw new Error("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: " + String(error));
+    }
+    try {
+      onProgress?.("2/5  \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC911...\n(NotebookLM AI \uC778\uB371\uC2F1 \u2014 \uCD5C\uB300 1\uBD84 \uC18C\uC694)");
+      try {
+        await execFileAsync(
+          path,
+          ["source", "add", notebookId, "--text", content],
+          { timeout: 6e4 }
+        );
+      } catch (error) {
+        throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + String(error));
+      }
+      onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uC751\uB2F5 \uB300\uAE30 \u2014 \uCD5C\uB300 2\uBD84 \uC18C\uC694)");
+      let summary;
+      try {
+        const { stdout } = await execFileAsync(
+          path,
+          ["query", notebookId, modeConfig.summaryPrompt],
+          { timeout: 12e4 }
+        );
+        summary = stdout.trim();
+      } catch {
+        summary = "\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
+      }
+      onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911...\n(NotebookLM Studio \u2014 \uCD5C\uB300 3\uBD84 \uC18C\uC694)");
+      let artifactId;
+      try {
+        const { stdout } = await execFileAsync(
+          path,
+          [
+            "slides",
+            "create",
+            notebookId,
+            "--format",
+            modeConfig.slidesFormat,
+            "--length",
+            modeConfig.slidesLength,
+            "--focus",
+            modeConfig.focusPrompt,
+            "--language",
+            "ko",
+            "--confirm"
+          ],
+          { timeout: 3e5 }
+        );
+        artifactId = this.extractArtifactId(stdout);
+      } catch (error) {
+        throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328: " + String(error));
+      }
+      if (removeBranding && artifactId) {
+        try {
+          const { stdout } = await execFileAsync(
+            path,
+            [
+              "slides",
+              "revise",
+              artifactId,
+              "--slide",
+              "1 \uD45C\uC9C0 \uC2AC\uB77C\uC774\uB4DC\uC5D0\uC11C NotebookLM \uB85C\uACE0\uC640 \uC6CC\uD130\uB9C8\uD06C\uB97C \uBAA8\uB450 \uC81C\uAC70\uD558\uC138\uC694",
+              "--confirm"
+            ],
+            { timeout: 18e4 }
+          );
+          const revisedId = this.extractArtifactId(stdout);
+          if (revisedId) {
+            artifactId = revisedId;
+          }
+        } catch {
+        }
+      }
+      onProgress?.("5/5  PPTX \uB2E4\uC6B4\uB85C\uB4DC \uC911...");
+      const tmpPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-${Date.now()}.pptx`);
+      try {
+        await execFileAsync(
+          path,
+          [
+            "download",
+            "slide-deck",
+            notebookId,
+            "--id",
+            artifactId,
+            "--format",
+            "pptx",
+            "--output",
+            tmpPath,
+            "--no-progress"
+          ],
+          { timeout: 12e4 }
+        );
+      } catch (error) {
+        throw new Error("PPTX \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328: " + String(error));
+      }
+      const fileBuffer = await (0, import_promises.readFile)(tmpPath);
+      const pptxBuffer = fileBuffer.buffer.slice(
+        fileBuffer.byteOffset,
+        fileBuffer.byteOffset + fileBuffer.byteLength
+      );
+      (0, import_promises.unlink)(tmpPath).catch(() => {
+      });
+      return { summary, pptxBuffer, mode };
+    } finally {
+      execFileAsync(path, ["notebook", "delete", notebookId], { timeout: 1e4 }).catch(() => {
+      });
+    }
+  }
+  extractId(output) {
+    const match = output.match(/([a-zA-Z0-9_-]{10,})/);
+    if (match) return match[1];
+    return output.trim().split("\n").pop()?.trim() || output.trim();
+  }
+  extractArtifactId(output) {
+    const uuidMatch = output.match(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+    );
+    if (uuidMatch) return uuidMatch[0];
+    const longMatch = output.match(/[a-zA-Z0-9_-]{20,}/);
+    if (longMatch) return longMatch[0];
+    return output.trim().split("\n").pop()?.trim() || "";
+  }
+};
+
+// src/mode-modal.ts
+var import_obsidian2 = require("obsidian");
+var ModeSelectionModal = class extends import_obsidian2.Modal {
+  constructor(app) {
+    super(app);
+    this.resolve = null;
+  }
+  open() {
+    return new Promise((resolve) => {
+      this.resolve = resolve;
+      super.open();
+    });
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("clippings-ppt-modal");
+    contentEl.createEl("h2", { text: "\uB9AC\uD3EC\uD2B8 \uBAA8\uB4DC \uC120\uD0DD" });
+    contentEl.createEl("p", {
+      text: "\uC5B4\uB5A4 \uC2A4\uD0C0\uC77C\uC758 PPT\uB97C \uC0DD\uC131\uD560\uAE4C\uC694?",
+      cls: "clippings-ppt-modal-desc"
+    });
+    const modesContainer = contentEl.createDiv({
+      cls: "clippings-ppt-modes"
+    });
+    const modeEntries = [
+      ["detailed", MODES.detailed],
+      ["executive", MODES.executive],
+      ["easy", MODES.easy]
+    ];
+    for (const [key, config] of modeEntries) {
+      const card = modesContainer.createDiv({
+        cls: "clippings-ppt-mode-card"
+      });
+      card.createDiv({
+        cls: "clippings-ppt-mode-icon",
+        text: config.icon
+      });
+      const textContainer = card.createDiv({
+        cls: "clippings-ppt-mode-text"
+      });
+      textContainer.createEl("strong", { text: config.label });
+      textContainer.createEl("small", { text: config.description });
+      card.addEventListener("click", () => {
+        if (this.resolve) {
+          this.resolve(key);
+          this.resolve = null;
+        }
+        this.close();
+      });
+    }
+    new import_obsidian2.Setting(contentEl).addButton(
+      (btn) => btn.setButtonText("\uCDE8\uC18C").onClick(() => {
+        if (this.resolve) {
+          this.resolve(null);
+          this.resolve = null;
+        }
+        this.close();
+      })
+    );
+  }
+  onClose() {
+    if (this.resolve) {
+      this.resolve(null);
+      this.resolve = null;
+    }
+    this.contentEl.empty();
+  }
+};
+
+// src/settings.ts
+var import_obsidian3 = require("obsidian");
+var DEFAULT_SETTINGS = {
+  nlmPath: "nlm",
+  clippingsFolder: "Clippings",
+  outputSubfolder: "PDF",
+  removeBranding: true
+};
+var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+  display() {
+    const { containerEl } = this;
+    containerEl.empty();
+    containerEl.createEl("h2", { text: "Clippings PPT Generator" });
+    containerEl.createEl("h3", { text: "NotebookLM \uC5F0\uB3D9" });
+    const loginSetting = new import_obsidian3.Setting(containerEl).setName("NotebookLM \uB85C\uADF8\uC778").setDesc("Google \uACC4\uC815\uC73C\uB85C NotebookLM\uC5D0 \uB85C\uADF8\uC778\uD569\uB2C8\uB2E4.");
+    const statusEl = loginSetting.descEl.createEl("div", {
+      cls: "clippings-ppt-login-status"
+    });
+    this.checkLoginStatus(statusEl);
+    loginSetting.addButton(
+      (button) => button.setButtonText("\u{1F310} \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778").onClick(async () => {
+        button.setDisabled(true);
+        await this.plugin.nlmClient.launchLogin();
+        button.setDisabled(false);
+      })
+    );
+    loginSetting.addButton(
+      (button) => button.setButtonText("\uC0C1\uD0DC \uD655\uC778").onClick(async () => {
+        button.setDisabled(true);
+        button.setButtonText("\uD655\uC778 \uC911...");
+        await this.checkLoginStatus(statusEl);
+        button.setDisabled(false);
+        button.setButtonText("\uC0C1\uD0DC \uD655\uC778");
+      })
+    );
+    new import_obsidian3.Setting(containerEl).setName("nlm CLI \uACBD\uB85C").setDesc(
+      "notebooklm-mcp-cli\uC758 nlm \uC2E4\uD589 \uD30C\uC77C \uACBD\uB85C. \uAE30\uBCF8\uAC12 'nlm'\uC73C\uB85C \uCC3E\uC9C0 \uBABB\uD560 \uACBD\uC6B0 \uC808\uB300 \uACBD\uB85C\uB97C \uC785\uB825\uD558\uC138\uC694. \uC608: /Users/yourname/.local/bin/nlm"
+    ).addText(
+      (text) => text.setPlaceholder("nlm").setValue(this.plugin.settings.nlmPath).onChange(async (value) => {
+        this.plugin.settings.nlmPath = value || "nlm";
+        this.plugin.nlmClient.setPath(this.plugin.settings.nlmPath);
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian3.Setting(containerEl).setName("NotebookLM \uBE0C\uB79C\uB529 \uC81C\uAC70").setDesc(
+      "\uC0DD\uC131\uB41C \uC2AC\uB77C\uC774\uB4DC\uC5D0\uC11C NotebookLM \uB85C\uACE0\uB97C \uC81C\uAC70\uD569\uB2C8\uB2E4. \uC2AC\uB77C\uC774\uB4DC \uC218\uC815\uC774 \uCD94\uAC00\uB85C \uC2E4\uD589\uB418\uC5B4 \uC57D\uAC04\uC758 \uC2DC\uAC04\uC774 \uB354 \uC18C\uC694\uB429\uB2C8\uB2E4."
+    ).addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.removeBranding).onChange(async (value) => {
+        this.plugin.settings.removeBranding = value;
+        await this.plugin.saveSettings();
+      })
+    );
+    containerEl.createEl("h3", { text: "\uD3F4\uB354 \uC124\uC815" });
+    new import_obsidian3.Setting(containerEl).setName("Clippings \uD3F4\uB354").setDesc("\uC6F9 \uD074\uB9AC\uD551\uC774 \uC800\uC7A5\uB418\uB294 \uD3F4\uB354 \uACBD\uB85C").addText(
+      (text) => text.setPlaceholder("Clippings").setValue(this.plugin.settings.clippingsFolder).onChange(async (value) => {
+        this.plugin.settings.clippingsFolder = value || "Clippings";
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian3.Setting(containerEl).setName("PPT \uC800\uC7A5 \uD558\uC704 \uD3F4\uB354").setDesc("Clippings \uD3F4\uB354 \uC548\uC5D0 PPT\uAC00 \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85").addText(
+      (text) => text.setPlaceholder("PDF").setValue(this.plugin.settings.outputSubfolder).onChange(async (value) => {
+        this.plugin.settings.outputSubfolder = value || "PDF";
+        await this.plugin.saveSettings();
+      })
+    );
+  }
+  async checkLoginStatus(statusEl) {
+    statusEl.empty();
+    statusEl.setText("\uD655\uC778 \uC911...");
+    statusEl.removeClass("clippings-ppt-status-ok", "clippings-ppt-status-error");
+    const installed = await this.plugin.nlmClient.isInstalled();
+    if (!installed) {
+      statusEl.setText("\u26A0 nlm CLI \uBBF8\uC124\uCE58 \u2014 \uD130\uBBF8\uB110\uC5D0\uC11C: uv tool install notebooklm-mcp-cli");
+      statusEl.addClass("clippings-ppt-status-error");
+      return;
+    }
+    const loggedIn = await this.plugin.nlmClient.isLoggedIn();
+    if (loggedIn) {
+      statusEl.setText("\u2713 \uB85C\uADF8\uC778\uB428");
+      statusEl.addClass("clippings-ppt-status-ok");
+    } else {
+      statusEl.setText("\u2717 \uB85C\uADF8\uC778 \uD544\uC694 \u2014 '\uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778' \uBC84\uD2BC\uC744 \uD074\uB9AD\uD558\uC138\uC694");
+      statusEl.addClass("clippings-ppt-status-error");
+    }
+  }
+};
+
+// src/main.ts
+function setButtonContent(btn, icon, text) {
+  btn.empty();
+  const iconSpan = document.createElement("span");
+  iconSpan.className = "clippings-ppt-btn-icon";
+  iconSpan.textContent = icon;
+  btn.appendChild(iconSpan);
+  btn.appendText(" " + text);
+}
+function setButtonLoading(btn, modeLabel) {
+  btn.empty();
+  const spinner = document.createElement("span");
+  spinner.className = "clippings-ppt-spinner";
+  btn.appendChild(spinner);
+  btn.appendText(` ${modeLabel} \uC0DD\uC131 \uC911...`);
+}
+var ClippingsPptPlugin = class extends import_obsidian4.Plugin {
+  constructor() {
+    super(...arguments);
+    this.settings = DEFAULT_SETTINGS;
+    this.nlmClient = new NotebookLMClient();
+  }
+  async onload() {
+    await this.loadSettings();
+    this.nlmClient = new NotebookLMClient(this.settings.nlmPath);
+    this.addSettingTab(new ClippingsPptSettingTab(this.app, this));
+    this.registerMarkdownPostProcessor((el, ctx) => {
+      const filePath = ctx.sourcePath;
+      if (!filePath.startsWith(this.settings.clippingsFolder + "/")) {
+        return;
+      }
+      const relativePath = filePath.slice(this.settings.clippingsFolder.length + 1);
+      if (relativePath.includes("/")) {
+        return;
+      }
+      if (el.querySelector(".clippings-ppt-btn-container")) {
+        return;
+      }
+      const firstChild = el.firstElementChild;
+      if (!firstChild) return;
+      const container = document.createElement("div");
+      container.className = "clippings-ppt-btn-container";
+      const btn = document.createElement("button");
+      btn.className = "clippings-ppt-btn";
+      setButtonContent(btn, "\u{1F4D3}", "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30");
+      btn.addEventListener("click", async () => {
+        const file = this.app.vault.getAbstractFileByPath(filePath);
+        if (file instanceof import_obsidian4.TFile) {
+          const modal = new ModeSelectionModal(this.app);
+          const mode = await modal.open();
+          if (mode) {
+            await this.handleGeneratePpt(file, btn, mode);
+          }
+        }
+      });
+      container.appendChild(btn);
+      el.insertBefore(container, firstChild);
+    });
+    this.addCommand({
+      id: "generate-ppt-notebooklm",
+      name: "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30",
+      checkCallback: (checking) => {
+        const view = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+        if (!view?.file) return false;
+        if (!view.file.path.startsWith(this.settings.clippingsFolder + "/")) {
+          return false;
+        }
+        if (!checking) {
+          const modal = new ModeSelectionModal(this.app);
+          modal.open().then((mode) => {
+            if (mode && view.file) {
+              this.handleGeneratePpt(view.file, null, mode);
+            }
+          });
+        }
+        return true;
+      }
+    });
+  }
+  async handleGeneratePpt(file, btn, mode) {
+    const modeConfig = MODES[mode];
+    if (btn) {
+      btn.disabled = true;
+      setButtonLoading(btn, modeConfig.label);
+      btn.addClass("clippings-ppt-btn-loading");
+    }
+    const notice = new import_obsidian4.Notice(
+      `${modeConfig.icon} ${modeConfig.label} \uC0DD\uC131 \uC911...
+NotebookLM\uC5D0 \uC5F0\uACB0 \uC911...`,
+      0
+    );
+    try {
+      const content = await this.app.vault.read(file);
+      const { frontmatter, body } = this.parseFrontmatter(content);
+      const title = frontmatter.title || file.basename;
+      const result = await this.nlmClient.generateContent(
+        title,
+        body,
+        mode,
+        this.settings.removeBranding,
+        (step) => {
+          notice.setMessage(`${modeConfig.icon} ${modeConfig.label}
+${step}`);
+        }
+      );
+      const outputFolder = `${this.settings.clippingsFolder}/${this.settings.outputSubfolder}`;
+      const pptFileName = `${file.basename}.pptx`;
+      const pptPath = `${outputFolder}/${pptFileName}`;
+      if (!this.app.vault.getAbstractFileByPath(outputFolder)) {
+        await this.app.vault.createFolder(outputFolder);
+      }
+      const existingFile = this.app.vault.getAbstractFileByPath(pptPath);
+      if (existingFile instanceof import_obsidian4.TFile) {
+        await this.app.vault.modifyBinary(existingFile, result.pptxBuffer);
+      } else {
+        await this.app.vault.createBinary(pptPath, result.pptxBuffer);
+      }
+      await this.insertSummaryAndLink(
+        file,
+        content,
+        result.summary,
+        pptPath,
+        modeConfig
+      );
+      notice.hide();
+      new import_obsidian4.Notice(
+        `${modeConfig.icon} ${modeConfig.label} \uC0DD\uC131 \uC644\uB8CC!
+${pptPath}`,
+        5e3
+      );
+    } catch (error) {
+      notice.hide();
+      new import_obsidian4.Notice("PPT \uC0DD\uC131 \uC2E4\uD328: " + String(error), 8e3);
+      console.error("Clippings PPT Generator error:", error);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        setButtonContent(btn, "\u{1F4D3}", "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30");
+        btn.removeClass("clippings-ppt-btn-loading");
+      }
+    }
+  }
+  async insertSummaryAndLink(file, originalContent, summary, pptPath, modeConfig) {
+    const { raw: rawFrontmatter, body } = this.parseFrontmatter(originalContent);
+    const summaryBlock = `> [!summary] ${modeConfig.icon} ${modeConfig.label}
+` + summary.split("\n").map((line) => `> ${line}`).join("\n") + `
+>
+> \u{1F4CE} **PPT:** [[${pptPath}]]`;
+    let newBody;
+    if (body.includes("> [!summary]")) {
+      newBody = body.replace(
+        /> \[!summary\][\s\S]*?(?=\n[^>]|\n\n[^>]|$)/,
+        summaryBlock
+      );
+    } else {
+      newBody = summaryBlock + "\n\n" + body;
+    }
+    const newContent = rawFrontmatter ? rawFrontmatter + "\n" + newBody : newBody;
+    await this.app.vault.modify(file, newContent);
+  }
+  parseFrontmatter(content) {
+    const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
+    if (!fmMatch) {
+      return { frontmatter: {}, body: content, raw: "" };
+    }
+    const raw = fmMatch[0].trimEnd();
+    const body = content.slice(fmMatch[0].length);
+    const frontmatter = {};
+    for (const line of fmMatch[1].split("\n")) {
+      const colonIdx = line.indexOf(":");
+      if (colonIdx > 0) {
+        const key = line.slice(0, colonIdx).trim();
+        const value = line.slice(colonIdx + 1).trim().replace(/^["']|["']$/g, "");
+        frontmatter[key] = value;
+      }
+    }
+    return { frontmatter, body, raw };
+  }
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
+};

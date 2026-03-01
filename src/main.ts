@@ -1,6 +1,5 @@
 import { Plugin, Notice, TFile, MarkdownView } from "obsidian";
 import { NotebookLMClient } from "./notebooklm";
-import { generatePptx } from "./ppt-generator";
 import { ModeSelectionModal } from "./mode-modal";
 import { MODES } from "./prompts";
 import type { ReportMode } from "./prompts";
@@ -117,7 +116,7 @@ export default class ClippingsPptPlugin extends Plugin {
 		}
 
 		const notice = new Notice(
-			`${modeConfig.icon} ${modeConfig.label} 생성 중...\nNotebookLM에 요청하고 있습니다.`,
+			`${modeConfig.icon} ${modeConfig.label} 생성 중...\nNotebookLM에 연결 중...`,
 			0
 		);
 
@@ -126,10 +125,17 @@ export default class ClippingsPptPlugin extends Plugin {
 			const { frontmatter, body } = this.parseFrontmatter(content);
 
 			const title = frontmatter.title || file.basename;
-			const source = frontmatter.source || "";
 
-			// NotebookLM 호출
-			const result = await this.nlmClient.generateContent(title, body, mode);
+			// NotebookLM 호출 — 각 단계마다 우측 하단 Notice 텍스트가 갱신됩니다
+			const result = await this.nlmClient.generateContent(
+				title,
+				body,
+				mode,
+				this.settings.removeBranding,
+				(step) => {
+					notice.setMessage(`${modeConfig.icon} ${modeConfig.label}\n${step}`);
+				}
+			);
 
 			// 출력 경로: Clippings/PDF/
 			const outputFolder = `${this.settings.clippingsFolder}/${this.settings.outputSubfolder}`;
@@ -141,20 +147,12 @@ export default class ClippingsPptPlugin extends Plugin {
 				await this.app.vault.createFolder(outputFolder);
 			}
 
-			const pptBuffer = await generatePptx(
-				title,
-				source,
-				result.summary,
-				result.slides,
-				mode
-			);
-
 			// PPTX 저장
 			const existingFile = this.app.vault.getAbstractFileByPath(pptPath);
 			if (existingFile instanceof TFile) {
-				await this.app.vault.modifyBinary(existingFile, pptBuffer);
+				await this.app.vault.modifyBinary(existingFile, result.pptxBuffer);
 			} else {
-				await this.app.vault.createBinary(pptPath, pptBuffer);
+				await this.app.vault.createBinary(pptPath, result.pptxBuffer);
 			}
 
 			// md 파일에 요약 + 링크 삽입
