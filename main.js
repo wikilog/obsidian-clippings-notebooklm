@@ -337,30 +337,44 @@ var NotebookLMClient = class {
       }
       onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(5\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 10\uBD84 \uB300\uAE30)");
       let artifactId;
-      try {
-        const { stdout } = await execFileAsync(
-          path,
-          [
-            "slides",
-            "create",
-            notebookId,
-            "--format",
-            modeConfig.slidesFormat,
-            "--length",
-            modeConfig.slidesLength,
-            "--focus",
-            modeConfig.focusPrompt,
-            "--language",
-            "ko",
-            "--confirm"
-          ],
-          { timeout: 6e4 }
-        );
-        artifactId = this.extractArtifactId(stdout);
-        if (!artifactId) throw new Error("Artifact ID\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4");
-        onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791\uB428 (ID: " + artifactId + ")");
-      } catch (error) {
-        throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
+      {
+        const maxRetries = 3;
+        let lastErr;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          if (attempt > 1) {
+            onProgress?.(`\u21B3 \uC7AC\uC2DC\uB3C4 ${attempt}/${maxRetries} \u2014 30\uCD08 \uB300\uAE30 \uC911...`);
+            await new Promise((r) => setTimeout(r, 3e4));
+          }
+          try {
+            const { stdout } = await execFileAsync(
+              path,
+              [
+                "slides",
+                "create",
+                notebookId,
+                "--format",
+                modeConfig.slidesFormat,
+                "--length",
+                modeConfig.slidesLength,
+                "--focus",
+                modeConfig.focusPrompt,
+                "--language",
+                "ko",
+                "--confirm"
+              ],
+              { timeout: 6e4 }
+            );
+            artifactId = this.extractArtifactId(stdout);
+            if (!artifactId) throw new Error("Artifact ID\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4");
+            onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791\uB428 (ID: " + artifactId + ")");
+            lastErr = null;
+            break;
+          } catch (error) {
+            lastErr = error;
+            onProgress?.(`\u21B3 \uC2DC\uB3C4 ${attempt} \uC2E4\uD328: ` + execDetail(error));
+          }
+        }
+        if (lastErr) throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328: " + execDetail(lastErr));
       }
       await this.waitForArtifact(path, notebookId, artifactId, onProgress);
       onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC644\uB8CC!");

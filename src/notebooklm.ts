@@ -334,26 +334,40 @@ export class NotebookLMClient {
 				summary = "요약을 생성할 수 없습니다.";
 			}
 
-			// 4. 슬라이드 생성 시작 (NotebookLM Studio — 비동기)
+			// 4. 슬라이드 생성 시작 (NotebookLM Studio — 비동기, 최대 3회 재시도)
 			onProgress?.("4/5  슬라이드 생성 시작 중...\n(5분마다 상태 확인, 최대 10분 대기)");
 			let artifactId: string;
-			try {
-				const { stdout } = await execFileAsync(
-					path, [
-						"slides", "create", notebookId,
-						"--format", modeConfig.slidesFormat,
-						"--length", modeConfig.slidesLength,
-						"--focus", modeConfig.focusPrompt,
-						"--language", "ko",
-						"--confirm",
-					],
-					{ timeout: 60000 }
-				);
-				artifactId = this.extractArtifactId(stdout);
-				if (!artifactId) throw new Error("Artifact ID를 찾을 수 없습니다");
-				onProgress?.("↳ 슬라이드 생성 시작됨 (ID: " + artifactId + ")");
-			} catch (error) {
-				throw new Error("슬라이드 생성 실패: " + execDetail(error));
+			{
+				const maxRetries = 3;
+				let lastErr: unknown;
+				for (let attempt = 1; attempt <= maxRetries; attempt++) {
+					if (attempt > 1) {
+						onProgress?.(`↳ 재시도 ${attempt}/${maxRetries} — 30초 대기 중...`);
+						await new Promise(r => setTimeout(r, 30000));
+					}
+					try {
+						const { stdout } = await execFileAsync(
+							path, [
+								"slides", "create", notebookId,
+								"--format", modeConfig.slidesFormat,
+								"--length", modeConfig.slidesLength,
+								"--focus", modeConfig.focusPrompt,
+								"--language", "ko",
+								"--confirm",
+							],
+							{ timeout: 60000 }
+						);
+						artifactId = this.extractArtifactId(stdout);
+						if (!artifactId) throw new Error("Artifact ID를 찾을 수 없습니다");
+						onProgress?.("↳ 슬라이드 생성 시작됨 (ID: " + artifactId + ")");
+						lastErr = null;
+						break;
+					} catch (error) {
+						lastErr = error;
+						onProgress?.(`↳ 시도 ${attempt} 실패: ` + execDetail(error));
+					}
+				}
+				if (lastErr) throw new Error("슬라이드 생성 실패: " + execDetail(lastErr));
 			}
 
 			// 4a. 슬라이드 완료 대기 (5분 간격 폴링, 최대 10분)
