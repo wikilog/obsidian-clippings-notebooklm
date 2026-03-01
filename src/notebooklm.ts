@@ -220,12 +220,13 @@ export class NotebookLMClient {
 		let notebookId: string;
 
 		try {
-			const { stdout } = await execFileAsync(
+			await execFileAsync(
 				path, ["notebook", "create", notebookName],
 				{ timeout: 30000 }
 			);
-			notebookId = this.extractId(stdout);
-			onProgress?.("↳ 노트북 ID: " + notebookId);
+			// notebook은 이름으로 참조 — create 출력에서 ID를 추출할 필요 없음
+			notebookId = notebookName;
+			onProgress?.("↳ 노트북 이름: " + notebookId);
 			// 노트북이 소스를 받을 준비가 될 때까지 잠시 대기
 			await new Promise(r => setTimeout(r, 3000));
 		} catch (error) {

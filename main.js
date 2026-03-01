@@ -232,13 +232,13 @@ var NotebookLMClient = class {
     const notebookName = title.replace(/[^\w\s가-힣\-_.]/g, "").trim().slice(0, 80) || `ppt-${Date.now()}`;
     let notebookId;
     try {
-      const { stdout } = await execFileAsync(
+      await execFileAsync(
         path,
         ["notebook", "create", notebookName],
         { timeout: 3e4 }
       );
-      notebookId = this.extractId(stdout);
-      onProgress?.("\u21B3 \uB178\uD2B8\uBD81 ID: " + notebookId);
+      notebookId = notebookName;
+      onProgress?.("\u21B3 \uB178\uD2B8\uBD81 \uC774\uB984: " + notebookId);
       await new Promise((r) => setTimeout(r, 3e3));
     } catch (error) {
       throw new Error("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
