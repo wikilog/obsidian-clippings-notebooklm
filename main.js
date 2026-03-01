@@ -104,7 +104,9 @@ async function findNlmBinary(configured) {
   try {
     await execFileAsync(configured, ["--version"], { timeout: 5e3 });
     return configured;
-  } catch {
+  } catch (error) {
+    const code = error.code;
+    if (code !== "ENOENT") return configured;
   }
   const binaryName = configured.split("/").pop() || configured;
   try {
@@ -149,8 +151,9 @@ var NotebookLMClient = class {
       const path = await this.getPath();
       await execFileAsync(path, ["--version"], { timeout: 5e3 });
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      const code = error.code;
+      return code !== "ENOENT";
     }
   }
   async isLoggedIn() {

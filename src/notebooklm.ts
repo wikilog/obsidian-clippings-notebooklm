@@ -35,8 +35,10 @@ async function findNlmBinary(configured: string): Promise<string> {
 	try {
 		await execFileAsync(configured, ["--version"], { timeout: 5000 });
 		return configured;
-	} catch {
-		// Not in PATH — search common locations below
+	} catch (error: unknown) {
+		const code = (error as NodeJS.ErrnoException).code;
+		if (code !== "ENOENT") return configured; // Binary found, non-zero exit is OK
+		// ENOENT: not in PATH — search common locations below
 	}
 
 	const binaryName = configured.split("/").pop() || configured;
@@ -100,8 +102,10 @@ export class NotebookLMClient {
 			const path = await this.getPath();
 			await execFileAsync(path, ["--version"], { timeout: 5000 });
 			return true;
-		} catch {
-			return false;
+		} catch (error: unknown) {
+			// ENOENT = binary not found; non-zero exit code = binary exists but --version unsupported
+			const code = (error as NodeJS.ErrnoException).code;
+			return code !== "ENOENT";
 		}
 	}
 
