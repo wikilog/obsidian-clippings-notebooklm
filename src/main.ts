@@ -164,9 +164,14 @@ export default class ClippingsPptPlugin extends Plugin {
 			this.refreshSidebar();
 		} catch (error) {
 			// 히스토리 실패 업데이트
+			const rawMsg = String(error);
 			historyItem.status = "error";
-			historyItem.errorMsg = this.classifyError(String(error));
-			historyItem.log?.push("✗ 오류 발생");
+			historyItem.errorMsg = this.classifyError(rawMsg);
+			// 원시 에러를 로그에 기록 (디버깅용)
+			historyItem.log?.push("✗ 오류: " + rawMsg.split("\n")[0]);
+			if (rawMsg.includes("\n")) {
+				historyItem.log?.push(rawMsg.split("\n")[1]?.trim() ?? "");
+			}
 			this.refreshSidebar();
 			console.error("[Clippings NotebookLM] PPT 생성 오류:", error);
 		} finally {
