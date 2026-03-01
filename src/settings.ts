@@ -90,21 +90,6 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 					})
 			);
 
-		new Setting(containerEl)
-			.setName("NotebookLM 브랜딩 제거")
-			.setDesc(
-				"생성된 슬라이드에서 NotebookLM 로고를 제거합니다. " +
-				"슬라이드 수정이 추가로 실행되어 약간의 시간이 더 소요됩니다."
-			)
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.removeBranding)
-					.onChange(async (value) => {
-						this.plugin.settings.removeBranding = value;
-						await this.plugin.saveSettings();
-					})
-			);
-
 		// 폴더 설정
 		containerEl.createEl("h3", { text: "폴더 설정" });
 

@@ -683,14 +683,6 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian3.Setting(containerEl).setName("NotebookLM \uBE0C\uB79C\uB529 \uC81C\uAC70").setDesc(
-      "\uC0DD\uC131\uB41C \uC2AC\uB77C\uC774\uB4DC\uC5D0\uC11C NotebookLM \uB85C\uACE0\uB97C \uC81C\uAC70\uD569\uB2C8\uB2E4. \uC2AC\uB77C\uC774\uB4DC \uC218\uC815\uC774 \uCD94\uAC00\uB85C \uC2E4\uD589\uB418\uC5B4 \uC57D\uAC04\uC758 \uC2DC\uAC04\uC774 \uB354 \uC18C\uC694\uB429\uB2C8\uB2E4."
-    ).addToggle(
-      (toggle) => toggle.setValue(this.plugin.settings.removeBranding).onChange(async (value) => {
-        this.plugin.settings.removeBranding = value;
-        await this.plugin.saveSettings();
-      })
-    );
     containerEl.createEl("h3", { text: "\uD3F4\uB354 \uC124\uC815" });
     new import_obsidian3.Setting(containerEl).setName("Clippings \uD3F4\uB354").setDesc("\uC6F9 \uD074\uB9AC\uD551\uC774 \uC800\uC7A5\uB418\uB294 \uD3F4\uB354 \uACBD\uB85C").addText(
       (text) => text.setPlaceholder("Clippings").setValue(this.plugin.settings.clippingsFolder).onChange(async (value) => {
