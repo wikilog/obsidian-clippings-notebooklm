@@ -213,6 +213,33 @@ var NotebookLMClient = class {
       return false;
     }
   }
+  /**
+   * 기존 인증 정보(Chrome 프로필)를 삭제하고 새 Google 계정으로 재로그인한다.
+   * nlm login --clear 를 사용하여 계정을 완전히 전환한다.
+   */
+  async launchAccountSwitch() {
+    const installed = await this.isInstalled();
+    if (!installed) {
+      new import_obsidian.Notice("nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.", 6e3);
+      return false;
+    }
+    try {
+      const path = await this.getPath();
+      const proc = (0, import_child_process.spawn)(path, ["login", "--clear"], {
+        detached: true,
+        stdio: "ignore"
+      });
+      proc.unref();
+      new import_obsidian.Notice(
+        "\u{1F504} \uAE30\uC874 \uACC4\uC815 \uC815\uBCF4\uB97C \uC0AD\uC81C\uD558\uACE0 \uBE0C\uB77C\uC6B0\uC800\uB97C \uC5FD\uB2C8\uB2E4.\n\uC0C8 Google \uACC4\uC815\uC73C\uB85C \uB85C\uADF8\uC778\uD558\uC138\uC694.\n\uC644\uB8CC \uD6C4 '\uC0C1\uD0DC \uD655\uC778' \uBC84\uD2BC\uC744 \uB20C\uB7EC \uD655\uC778\uD558\uC138\uC694.",
+        1e4
+      );
+      return true;
+    } catch (error) {
+      new import_obsidian.Notice("\uACC4\uC815 \uBCC0\uACBD \uC2E4\uD589 \uC2E4\uD328: " + String(error), 8e3);
+      return false;
+    }
+  }
   async generateContent(title, content, mode, removeBranding = true, sourceUrl, onProgress, pdfProvider) {
     const path = await this.getPath();
     const installed = await this.isInstalled();
@@ -658,7 +685,7 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
     loginSetting.addButton(
       (button) => button.setButtonText("\uACC4\uC815 \uBCC0\uACBD").onClick(async () => {
         button.setDisabled(true);
-        await this.plugin.nlmClient.launchLogin();
+        await this.plugin.nlmClient.launchAccountSwitch();
         button.setDisabled(false);
       })
     );

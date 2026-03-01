@@ -177,6 +177,38 @@ export class NotebookLMClient {
 		}
 	}
 
+	/**
+	 * 기존 인증 정보(Chrome 프로필)를 삭제하고 새 Google 계정으로 재로그인한다.
+	 * nlm login --clear 를 사용하여 계정을 완전히 전환한다.
+	 */
+	async launchAccountSwitch(): Promise<boolean> {
+		const installed = await this.isInstalled();
+		if (!installed) {
+			new Notice("nlm CLI를 찾을 수 없습니다.", 6000);
+			return false;
+		}
+
+		try {
+			const path = await this.getPath();
+			const proc = spawn(path, ["login", "--clear"], {
+				detached: true,
+				stdio: "ignore",
+			});
+			proc.unref();
+
+			new Notice(
+				"🔄 기존 계정 정보를 삭제하고 브라우저를 엽니다.\n" +
+				"새 Google 계정으로 로그인하세요.\n" +
+				"완료 후 '상태 확인' 버튼을 눌러 확인하세요.",
+				10000
+			);
+			return true;
+		} catch (error) {
+			new Notice("계정 변경 실행 실패: " + String(error), 8000);
+			return false;
+		}
+	}
+
 	async generateContent(
 		title: string,
 		content: string,

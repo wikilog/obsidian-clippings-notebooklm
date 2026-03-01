@@ -53,11 +53,11 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 			})
 		);
 
-		// 계정 변경 버튼 (다른 Google 계정으로 재인증)
+		// 계정 변경 버튼 (기존 인증 삭제 후 새 계정으로 재로그인)
 		loginSetting.addButton((button) =>
 			button.setButtonText("계정 변경").onClick(async () => {
 				button.setDisabled(true);
-				await this.plugin.nlmClient.launchLogin();
+				await this.plugin.nlmClient.launchAccountSwitch();
 				button.setDisabled(false);
 			})
 		);
