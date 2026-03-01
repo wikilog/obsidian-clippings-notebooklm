@@ -1,4 +1,13 @@
-import { Plugin, Notice, TFile, MarkdownView } from "obsidian";
+import { Plugin, Notice, TFile, MarkdownView, addIcon } from "obsidian";
+
+const NOTEBOOKLM_ICON_ID = "notebooklm";
+const NOTEBOOKLM_ICON_SVG = `
+<rect x="8" y="5" width="78" height="90" rx="8" fill="none" stroke="currentColor" stroke-width="6"/>
+<line x1="26" y1="5" x2="26" y2="95" stroke="currentColor" stroke-width="6"/>
+<path d="M70 13 L75 24 L86 29 L75 34 L70 45 L65 34 L54 29 L65 24 Z" fill="currentColor"/>
+<line x1="36" y1="60" x2="78" y2="60" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+<line x1="36" y1="75" x2="78" y2="75" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+`;
 import { NotebookLMClient } from "./notebooklm";
 import { ModeSelectionModal } from "./mode-modal";
 import { MODES } from "./prompts";
@@ -38,6 +47,7 @@ export default class ClippingsPptPlugin extends Plugin {
 	isRunning = false;
 
 	async onload(): Promise<void> {
+		addIcon(NOTEBOOKLM_ICON_ID, NOTEBOOKLM_ICON_SVG);
 		await this.loadSettings();
 		this.nlmClient = new NotebookLMClient(this.settings.nlmPath);
 
@@ -50,7 +60,7 @@ export default class ClippingsPptPlugin extends Plugin {
 		);
 
 		// 리본 아이콘으로 사이드바 토글
-		this.addRibbonIcon("notebook", "Clippings NotebookLM", () => {
+		this.addRibbonIcon(NOTEBOOKLM_ICON_ID, "Clippings NotebookLM", () => {
 			this.toggleSidebar();
 		});
 
