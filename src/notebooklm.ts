@@ -3,7 +3,7 @@ import { execFile, spawn } from "child_process";
 import { promisify } from "util";
 import { homedir, tmpdir } from "os";
 import { join } from "path";
-import { access, constants, readFile, unlink } from "fs/promises";
+import { access, constants, readFile, unlink, writeFile } from "fs/promises";
 import type { ReportMode } from "./prompts";
 import { MODES } from "./prompts";
 
@@ -238,13 +238,27 @@ export class NotebookLMClient {
 				}
 			}
 			if (!sourceAdded) {
+				// --text 직접 전달 대신 임시 파일로 저장 후 --file 로 업로드
+				// (NotebookLM API가 text 인라인 전달을 거부하는 경우 대비)
+				const tmpTextPath = join(tmpdir(), `nlm-src-${Date.now()}.txt`);
 				try {
-					await execFileAsync(
-						path, ["source", "add", notebookId, "--text", truncated, "--wait"],
-						{ timeout: 120000 }
-					);
+					await writeFile(tmpTextPath, truncated, "utf-8");
+					try {
+						await execFileAsync(
+							path, ["source", "add", notebookId, "--file", tmpTextPath, "--wait"],
+							{ timeout: 120000 }
+						);
+					} catch {
+						// --file 실패 시 --text 로 폴백
+						await execFileAsync(
+							path, ["source", "add", notebookId, "--text", truncated, "--wait"],
+							{ timeout: 120000 }
+						);
+					}
 				} catch (error) {
 					throw new Error("소스 추가 실패: " + execDetail(error));
+				} finally {
+					unlink(tmpTextPath).catch(() => {});
 				}
 			}
 

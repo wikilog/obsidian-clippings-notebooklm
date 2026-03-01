@@ -250,14 +250,27 @@ var NotebookLMClient = class {
         }
       }
       if (!sourceAdded) {
+        const tmpTextPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-src-${Date.now()}.txt`);
         try {
-          await execFileAsync(
-            path,
-            ["source", "add", notebookId, "--text", truncated, "--wait"],
-            { timeout: 12e4 }
-          );
+          await (0, import_promises.writeFile)(tmpTextPath, truncated, "utf-8");
+          try {
+            await execFileAsync(
+              path,
+              ["source", "add", notebookId, "--file", tmpTextPath, "--wait"],
+              { timeout: 12e4 }
+            );
+          } catch {
+            await execFileAsync(
+              path,
+              ["source", "add", notebookId, "--text", truncated, "--wait"],
+              { timeout: 12e4 }
+            );
+          }
         } catch (error) {
           throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + execDetail(error));
+        } finally {
+          (0, import_promises.unlink)(tmpTextPath).catch(() => {
+          });
         }
       }
       onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uC751\uB2F5 \uB300\uAE30 \u2014 \uCD5C\uB300 2\uBD84 \uC18C\uC694)");
