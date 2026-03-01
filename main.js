@@ -774,6 +774,15 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
+    containerEl.createEl("h3", { text: t4("\uD6C4\uC6D0", "Support") });
+    new import_obsidian3.Setting(containerEl).setName(t4("\uAC1C\uBC1C\uC790 \uD6C4\uC6D0\uD558\uAE30 \u2615", "Support the Developer \u2615")).setDesc(t4(
+      "\uC774 \uD50C\uB7EC\uADF8\uC778\uC774 \uC720\uC6A9\uD558\uB2E4\uBA74 \uCEE4\uD53C \uD55C \uC794\uC73C\uB85C \uC751\uC6D0\uD574\uC8FC\uC138\uC694. \uAC1C\uBC1C\uC744 \uACC4\uC18D\uD558\uB294 \uB370 \uD070 \uD798\uC774 \uB429\uB2C8\uB2E4!",
+      "If you find this plugin useful, consider buying me a coffee. It helps keep the project alive!"
+    )).addButton(
+      (button) => button.setButtonText("\u2615 Buy Me a Coffee").onClick(() => {
+        window.open("https://buymeacoffee.com/wikilog", "_blank");
+      })
+    );
   }
   async checkLoginStatus(statusEl) {
     statusEl.empty();

@@ -141,6 +141,23 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
+
+		// 후원 섹션
+		containerEl.createEl("h3", { text: t("후원", "Support") });
+
+		new Setting(containerEl)
+			.setName(t("개발자 후원하기 ☕", "Support the Developer ☕"))
+			.setDesc(t(
+				"이 플러그인이 유용하다면 커피 한 잔으로 응원해주세요. 개발을 계속하는 데 큰 힘이 됩니다!",
+				"If you find this plugin useful, consider buying me a coffee. It helps keep the project alive!"
+			))
+			.addButton((button) =>
+				button
+					.setButtonText("☕ Buy Me a Coffee")
+					.onClick(() => {
+						window.open("https://buymeacoffee.com/wikilog", "_blank");
+					})
+			);
 	}
 
 	private async checkLoginStatus(statusEl: HTMLElement): Promise<void> {
