@@ -1,3 +1,8 @@
+/* 편집 모드(Live Preview)에서는 버튼 숨김 — Reading View 전용 */
+.markdown-source-view .clippings-ppt-btn-container {
+	display: none;
+}
+
 /* 버튼 컨테이너 */
 .clippings-ppt-btn-container {
 	display: flex;

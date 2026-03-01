@@ -3,7 +3,7 @@ import { execFile, spawn } from "child_process";
 import { promisify } from "util";
 import { homedir, tmpdir } from "os";
 import { join } from "path";
-import { access, constants, readFile, unlink } from "fs/promises";
+import { access, constants, readFile, unlink, writeFile } from "fs/promises";
 import type { ReportMode } from "./prompts";
 import { MODES } from "./prompts";
 
@@ -191,15 +191,19 @@ export class NotebookLMClient {
 		}
 
 		try {
-			// 2. 소스 추가 (NotebookLM이 내부적으로 AI 인덱싱 수행)
+			// 2. 소스 추가 (임시 파일 경유 — CLI 인자 길이 제한 우회)
 			onProgress?.("2/5  소스 업로드 중...\n(NotebookLM AI 인덱싱 — 최대 1분 소요)");
+			const tmpSourcePath = join(tmpdir(), `nlm-source-${Date.now()}.md`);
 			try {
+				await writeFile(tmpSourcePath, content, "utf8");
 				await execFileAsync(
-					path, ["source", "add", notebookId, "--text", content],
+					path, ["source", "add", notebookId, "--file", tmpSourcePath],
 					{ timeout: 60000 }
 				);
 			} catch (error) {
 				throw new Error("소스 추가 실패: " + String(error));
+			} finally {
+				unlink(tmpSourcePath).catch(() => {});
 			}
 
 			// 3. 요약 요청

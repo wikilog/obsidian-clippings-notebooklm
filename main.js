@@ -216,14 +216,19 @@ var NotebookLMClient = class {
     }
     try {
       onProgress?.("2/5  \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC911...\n(NotebookLM AI \uC778\uB371\uC2F1 \u2014 \uCD5C\uB300 1\uBD84 \uC18C\uC694)");
+      const tmpSourcePath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-source-${Date.now()}.md`);
       try {
+        await (0, import_promises.writeFile)(tmpSourcePath, content, "utf8");
         await execFileAsync(
           path,
-          ["source", "add", notebookId, "--text", content],
+          ["source", "add", notebookId, "--file", tmpSourcePath],
           { timeout: 6e4 }
         );
       } catch (error) {
         throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + String(error));
+      } finally {
+        (0, import_promises.unlink)(tmpSourcePath).catch(() => {
+        });
       }
       onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uC751\uB2F5 \uB300\uAE30 \u2014 \uCD5C\uB300 2\uBD84 \uC18C\uC694)");
       let summary;
