@@ -335,7 +335,7 @@ var NotebookLMClient = class {
       } catch {
         summary = "\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
       }
-      onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911...\n(NotebookLM Studio \u2014 \uCD5C\uB300 3\uBD84 \uC18C\uC694)");
+      onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(5\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 10\uBD84 \uB300\uAE30)");
       let artifactId;
       try {
         const { stdout } = await execFileAsync(
@@ -354,12 +354,16 @@ var NotebookLMClient = class {
             "ko",
             "--confirm"
           ],
-          { timeout: 3e5 }
+          { timeout: 6e4 }
         );
         artifactId = this.extractArtifactId(stdout);
+        if (!artifactId) throw new Error("Artifact ID\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4");
+        onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791\uB428 (ID: " + artifactId + ")");
       } catch (error) {
         throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
       }
+      await this.waitForArtifact(path, notebookId, artifactId, onProgress);
+      onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC644\uB8CC!");
       if (removeBranding && artifactId) {
         try {
           const { stdout } = await execFileAsync(
@@ -372,7 +376,7 @@ var NotebookLMClient = class {
               "1 \uD45C\uC9C0 \uC2AC\uB77C\uC774\uB4DC\uC5D0\uC11C NotebookLM \uB85C\uACE0\uC640 \uC6CC\uD130\uB9C8\uD06C\uB97C \uBAA8\uB450 \uC81C\uAC70\uD558\uC138\uC694",
               "--confirm"
             ],
-            { timeout: 18e4 }
+            { timeout: 6e4 }
           );
           const revisedId = this.extractArtifactId(stdout);
           if (revisedId) {
@@ -477,6 +481,52 @@ ${text}`, "utf-8");
   /** NotebookLM --text 소스 추가를 위해 마크다운 문법을 제거하고 순수 텍스트로 정제 */
   cleanTextForSource(text) {
     return text.replace(/!\[.*?\]\(.*?\)/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\*([^*]+)\*/g, "$1").replace(/`{3}[\s\S]*?`{3}/g, "").replace(/`[^`]+`/g, "").replace(/^\s*\|.*\|\s*$/gm, "").replace(/^\s*[-|:=]{3,}\s*$/gm, "").replace(/^\s*[-*+]\s+/gm, "").replace(/^\s*\d+\.\s+/gm, "").replace(/^>\s*/gm, "").replace(/\n{3,}/g, "\n\n").trim();
+  }
+  /**
+   * Studio artifact가 "completed" 상태가 될 때까지 폴링한다.
+   * - 5분 간격으로 studio status --json 호출
+   * - 30초마다 사이드바에 경과 시간 표시
+   * - 최대 10분 대기 후 타임아웃
+   */
+  async waitForArtifact(path, notebookId, artifactId, onProgress) {
+    const pollIntervalMs = 5 * 60 * 1e3;
+    const maxWaitMs = 10 * 60 * 1e3;
+    const tickMs = 30 * 1e3;
+    const startTime = Date.now();
+    let lastPollTime = Date.now();
+    while (true) {
+      await new Promise((r) => setTimeout(r, tickMs));
+      const elapsed = Date.now() - startTime;
+      const mins = Math.floor(elapsed / 6e4);
+      const secs = Math.floor(elapsed % 6e4 / 1e3);
+      const timeStr = `${mins}\uBD84 ${String(secs).padStart(2, "0")}\uCD08 \uACBD\uACFC`;
+      if (Date.now() - lastPollTime >= pollIntervalMs) {
+        try {
+          const { stdout: statusOut } = await execFileAsync(
+            path,
+            ["studio", "status", notebookId, "--json"],
+            { timeout: 15e3 }
+          );
+          let status = "unknown";
+          try {
+            const artifacts = JSON.parse(statusOut);
+            status = artifacts.find((a) => a.id === artifactId)?.status ?? "unknown";
+          } catch {
+          }
+          lastPollTime = Date.now();
+          onProgress?.(`\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0C1\uD0DC: ${status} | ${timeStr}`);
+          if (status === "completed") return;
+        } catch {
+          onProgress?.(`\u21B3 \uC0C1\uD0DC \uD655\uC778 \uC2E4\uD328 | ${timeStr}`);
+          lastPollTime = Date.now();
+        }
+      } else {
+        onProgress?.(`\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911... | ${timeStr}`);
+      }
+      if (elapsed >= maxWaitMs) {
+        throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uAC04 \uCD08\uACFC (10\uBD84 \uCD08\uACFC)");
+      }
+    }
   }
   extractId(output) {
     const lines = output.trim().split("\n").map((l) => l.trim()).filter(Boolean);

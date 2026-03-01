@@ -334,8 +334,8 @@ export class NotebookLMClient {
 				summary = "요약을 생성할 수 없습니다.";
 			}
 
-			// 4. 슬라이드 생성 (NotebookLM Studio)
-			onProgress?.("4/5  슬라이드 생성 중...\n(NotebookLM Studio — 최대 3분 소요)");
+			// 4. 슬라이드 생성 시작 (NotebookLM Studio — 비동기)
+			onProgress?.("4/5  슬라이드 생성 시작 중...\n(5분마다 상태 확인, 최대 10분 대기)");
 			let artifactId: string;
 			try {
 				const { stdout } = await execFileAsync(
@@ -347,12 +347,18 @@ export class NotebookLMClient {
 						"--language", "ko",
 						"--confirm",
 					],
-					{ timeout: 300000 }
+					{ timeout: 60000 }
 				);
 				artifactId = this.extractArtifactId(stdout);
+				if (!artifactId) throw new Error("Artifact ID를 찾을 수 없습니다");
+				onProgress?.("↳ 슬라이드 생성 시작됨 (ID: " + artifactId + ")");
 			} catch (error) {
 				throw new Error("슬라이드 생성 실패: " + execDetail(error));
 			}
+
+			// 4a. 슬라이드 완료 대기 (5분 간격 폴링, 최대 10분)
+			await this.waitForArtifact(path, notebookId, artifactId, onProgress);
+			onProgress?.("↳ 슬라이드 생성 완료!");
 
 			// 4b. NotebookLM 브랜딩 제거 (선택사항)
 			if (removeBranding && artifactId) {
@@ -363,7 +369,7 @@ export class NotebookLMClient {
 							"--slide", "1 표지 슬라이드에서 NotebookLM 로고와 워터마크를 모두 제거하세요",
 							"--confirm",
 						],
-						{ timeout: 180000 }
+						{ timeout: 60000 }
 					);
 					const revisedId = this.extractArtifactId(stdout);
 					if (revisedId) {
@@ -489,6 +495,61 @@ export class NotebookLMClient {
 			.replace(/^>\s*/gm, "")                         // 인용구 마커 제거
 			.replace(/\n{3,}/g, "\n\n")                   // 연속 빈줄 정리
 			.trim();
+	}
+
+	/**
+	 * Studio artifact가 "completed" 상태가 될 때까지 폴링한다.
+	 * - 5분 간격으로 studio status --json 호출
+	 * - 30초마다 사이드바에 경과 시간 표시
+	 * - 최대 10분 대기 후 타임아웃
+	 */
+	private async waitForArtifact(
+		path: string,
+		notebookId: string,
+		artifactId: string,
+		onProgress?: (message: string) => void
+	): Promise<void> {
+		const pollIntervalMs = 5 * 60 * 1000; // 5분마다 API 폴링
+		const maxWaitMs = 10 * 60 * 1000;     // 최대 10분 대기
+		const tickMs = 30 * 1000;              // 30초마다 사이드바 업데이트
+		const startTime = Date.now();
+		let lastPollTime = Date.now();         // 첫 폴링은 5분 후
+
+		while (true) {
+			await new Promise(r => setTimeout(r, tickMs));
+
+			const elapsed = Date.now() - startTime;
+			const mins = Math.floor(elapsed / 60000);
+			const secs = Math.floor((elapsed % 60000) / 1000);
+			const timeStr = `${mins}분 ${String(secs).padStart(2, "0")}초 경과`;
+
+			if (Date.now() - lastPollTime >= pollIntervalMs) {
+				// 5분마다 API 폴링
+				try {
+					const { stdout: statusOut } = await execFileAsync(
+						path, ["studio", "status", notebookId, "--json"],
+						{ timeout: 15000 }
+					);
+					let status = "unknown";
+					try {
+						const artifacts = JSON.parse(statusOut) as Array<{ id: string; status: string }>;
+						status = artifacts.find(a => a.id === artifactId)?.status ?? "unknown";
+					} catch { /* JSON 파싱 실패 */ }
+					lastPollTime = Date.now();
+					onProgress?.(`↳ 슬라이드 상태: ${status} | ${timeStr}`);
+					if (status === "completed") return;
+				} catch {
+					onProgress?.(`↳ 상태 확인 실패 | ${timeStr}`);
+					lastPollTime = Date.now();
+				}
+			} else {
+				onProgress?.(`↳ 슬라이드 생성 중... | ${timeStr}`);
+			}
+
+			if (elapsed >= maxWaitMs) {
+				throw new Error("슬라이드 생성 시간 초과 (10분 초과)");
+			}
+		}
 	}
 
 	private extractId(output: string): string {
