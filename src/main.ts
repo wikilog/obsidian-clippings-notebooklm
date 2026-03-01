@@ -132,7 +132,7 @@ export default class ClippingsPptPlugin extends Plugin {
 				source || undefined,
 				(step) => {
 					historyItem.log = historyItem.log ?? [];
-					historyItem.log.push(step.split("\n")[0]);
+					historyItem.log.push(step);
 					this.refreshSidebar();
 				},
 				() => this.exportFileToPdf(file)
@@ -189,7 +189,7 @@ export default class ClippingsPptPlugin extends Plugin {
 			(this.app.vault.adapter as any).basePath ?? tmpdir();
 		const exportDir = join(vaultBasePath, this.settings.clippingsFolder, this.settings.exportPdfSubfolder);
 		await mkdir(exportDir, { recursive: true }).catch(() => {});
-		const tmpPdfPath = join(exportDir, `nlm-export-${Date.now()}.pdf`);
+		const tmpPdfPath = join(exportDir, `${file.basename}.pdf`);
 		try {
 			const leaf = this.app.workspace.getLeaf(false);
 			await leaf.openFile(file);

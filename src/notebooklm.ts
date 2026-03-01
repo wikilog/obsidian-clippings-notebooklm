@@ -220,13 +220,17 @@ export class NotebookLMClient {
 		let notebookId: string;
 
 		try {
-			await execFileAsync(
+			const { stdout: createOut } = await execFileAsync(
 				path, ["notebook", "create", notebookName],
 				{ timeout: 30000 }
 			);
-			// notebook은 이름으로 참조 — create 출력에서 ID를 추출할 필요 없음
-			notebookId = notebookName;
-			onProgress?.("↳ 노트북 이름: " + notebookId);
+			// UUID 또는 20자+ ID가 있으면 사용, 없으면 이름으로 참조
+			const uuidMatch = createOut.match(
+				/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+			);
+			const longIdMatch = createOut.match(/[a-zA-Z0-9_-]{20,}/);
+			notebookId = uuidMatch?.[0] ?? longIdMatch?.[0] ?? notebookName;
+			onProgress?.("↳ 노트북 생성 완료\nID: " + notebookId + "\ncreate 출력: " + (createOut.trim() || "(없음)"));
 			// 노트북이 소스를 받을 준비가 될 때까지 잠시 대기
 			await new Promise(r => setTimeout(r, 3000));
 		} catch (error) {
@@ -278,7 +282,7 @@ export class NotebookLMClient {
 						uploadSucceeded = true;
 						onProgress?.("↳ PDF 업로드 완료");
 					} catch (pdfErr) {
-						onProgress?.("↳ PDF 업로드 실패: " + execDetail(pdfErr) + "\n→ 텍스트 파일로 전환");
+						onProgress?.("↳ PDF 업로드 실패\n" + execDetail(pdfErr) + "\n→ 텍스트 파일로 전환");
 					}
 				} else {
 					onProgress?.("↳ PDF 변환 불가 → 텍스트로 전환");
@@ -302,7 +306,7 @@ export class NotebookLMClient {
 					onProgress?.("↳ txt 업로드 완료");
 				} catch (txtErr) {
 					// .txt --file 실패 시 --text 직접 전달로 최후 시도
-					onProgress?.("↳ txt 파일 업로드 실패: " + execDetail(txtErr) + "\n→ --text 직접 전달 시도");
+					onProgress?.("↳ txt 업로드 실패\n" + execDetail(txtErr) + "\n→ --text 직접 전달 시도");
 					try {
 						await execFileAsync(
 							path, ["source", "add", notebookId, "--text", cleanedText],

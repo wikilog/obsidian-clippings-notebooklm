@@ -232,13 +232,17 @@ var NotebookLMClient = class {
     const notebookName = title.replace(/[^\w\s가-힣\-_.]/g, "").trim().slice(0, 80) || `ppt-${Date.now()}`;
     let notebookId;
     try {
-      await execFileAsync(
+      const { stdout: createOut } = await execFileAsync(
         path,
         ["notebook", "create", notebookName],
         { timeout: 3e4 }
       );
-      notebookId = notebookName;
-      onProgress?.("\u21B3 \uB178\uD2B8\uBD81 \uC774\uB984: " + notebookId);
+      const uuidMatch = createOut.match(
+        /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+      );
+      const longIdMatch = createOut.match(/[a-zA-Z0-9_-]{20,}/);
+      notebookId = uuidMatch?.[0] ?? longIdMatch?.[0] ?? notebookName;
+      onProgress?.("\u21B3 \uB178\uD2B8\uBD81 \uC0DD\uC131 \uC644\uB8CC\nID: " + notebookId + "\ncreate \uCD9C\uB825: " + (createOut.trim() || "(\uC5C6\uC74C)"));
       await new Promise((r) => setTimeout(r, 3e3));
     } catch (error) {
       throw new Error("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
@@ -281,7 +285,7 @@ var NotebookLMClient = class {
             uploadSucceeded = true;
             onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC644\uB8CC");
           } catch (pdfErr) {
-            onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC2E4\uD328: " + execDetail(pdfErr) + "\n\u2192 \uD14D\uC2A4\uD2B8 \uD30C\uC77C\uB85C \uC804\uD658");
+            onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC2E4\uD328\n" + execDetail(pdfErr) + "\n\u2192 \uD14D\uC2A4\uD2B8 \uD30C\uC77C\uB85C \uC804\uD658");
           }
         } else {
           onProgress?.("\u21B3 PDF \uBCC0\uD658 \uBD88\uAC00 \u2192 \uD14D\uC2A4\uD2B8\uB85C \uC804\uD658");
@@ -303,7 +307,7 @@ var NotebookLMClient = class {
           );
           onProgress?.("\u21B3 txt \uC5C5\uB85C\uB4DC \uC644\uB8CC");
         } catch (txtErr) {
-          onProgress?.("\u21B3 txt \uD30C\uC77C \uC5C5\uB85C\uB4DC \uC2E4\uD328: " + execDetail(txtErr) + "\n\u2192 --text \uC9C1\uC811 \uC804\uB2EC \uC2DC\uB3C4");
+          onProgress?.("\u21B3 txt \uC5C5\uB85C\uB4DC \uC2E4\uD328\n" + execDetail(txtErr) + "\n\u2192 --text \uC9C1\uC811 \uC804\uB2EC \uC2DC\uB3C4");
           try {
             await execFileAsync(
               path,
@@ -918,7 +922,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
         source || void 0,
         (step) => {
           historyItem.log = historyItem.log ?? [];
-          historyItem.log.push(step.split("\n")[0]);
+          historyItem.log.push(step);
           this.refreshSidebar();
         },
         () => this.exportFileToPdf(file)
@@ -966,7 +970,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
     const exportDir = (0, import_path2.join)(vaultBasePath, this.settings.clippingsFolder, this.settings.exportPdfSubfolder);
     await (0, import_promises2.mkdir)(exportDir, { recursive: true }).catch(() => {
     });
-    const tmpPdfPath = (0, import_path2.join)(exportDir, `nlm-export-${Date.now()}.pdf`);
+    const tmpPdfPath = (0, import_path2.join)(exportDir, `${file.basename}.pdf`);
     try {
       const leaf = this.app.workspace.getLeaf(false);
       await leaf.openFile(file);
