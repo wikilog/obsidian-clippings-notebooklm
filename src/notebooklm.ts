@@ -543,7 +543,7 @@ export class NotebookLMClient {
 	): Promise<void> {
 		const pollIntervalMs = 5 * 60 * 1000; // 5분마다 API 폴링
 		const maxWaitMs = 15 * 60 * 1000;     // 최대 15분 대기
-		const tickMs = 30 * 1000;              // 30초마다 사이드바 업데이트
+		const tickMs = 1000;                   // 1초마다 사이드바 업데이트
 		const startTime = Date.now();
 		let lastPollTime = Date.now();         // 첫 폴링은 5분 후
 

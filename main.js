@@ -518,7 +518,7 @@ ${text}`, "utf-8");
   async waitForArtifact(path, notebookId, artifactId, onProgress) {
     const pollIntervalMs = 5 * 60 * 1e3;
     const maxWaitMs = 15 * 60 * 1e3;
-    const tickMs = 30 * 1e3;
+    const tickMs = 1e3;
     const startTime = Date.now();
     let lastPollTime = Date.now();
     while (true) {
