@@ -129,7 +129,6 @@ export default class ClippingsPptPlugin extends Plugin {
 				title,
 				body,
 				mode,
-				this.settings.removeBranding,
 				source || undefined,
 				(step) => {
 					historyItem.log = historyItem.log ?? [];

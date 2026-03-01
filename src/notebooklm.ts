@@ -213,7 +213,6 @@ export class NotebookLMClient {
 		title: string,
 		content: string,
 		mode: ReportMode,
-		removeBranding: boolean = true,
 		sourceUrl?: string,
 		onProgress?: (message: string) => void,
 		pdfProvider?: () => Promise<string | null>
@@ -405,28 +404,6 @@ export class NotebookLMClient {
 			// 4a. 슬라이드 완료 대기 (5분 간격 폴링, 최대 10분)
 			await this.waitForArtifact(path, notebookId, artifactId, onProgress);
 			onProgress?.("↳ 슬라이드 생성 완료!");
-
-			// 4b. NotebookLM 브랜딩 제거 (선택사항)
-			if (removeBranding && artifactId) {
-				try {
-					const { stdout } = await execFileAsync(
-						path, [
-							"slides", "revise", artifactId,
-							"--slide", "1 표지 슬라이드에서 NotebookLM 로고와 워터마크를 모두 제거하세요",
-							"--confirm",
-						],
-						{ timeout: 60000 }
-					);
-					const revisedId = this.extractArtifactId(stdout);
-					if (revisedId) {
-						artifactId = revisedId;
-						// revise도 비동기 — 완료될 때까지 대기
-						await this.waitForArtifact(path, notebookId, revisedId, onProgress);
-					}
-				} catch {
-					// 브랜딩 제거 실패 시 원본 사용
-				}
-			}
 
 			// 5. PPTX 다운로드
 			onProgress?.("5/5  PPTX 다운로드 중...");

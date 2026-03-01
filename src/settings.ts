@@ -6,7 +6,6 @@ export interface ClippingsPptSettings {
 	clippingsFolder: string;
 	outputSubfolder: string;
 	exportPdfSubfolder: string;
-	removeBranding: boolean;
 }
 
 export const DEFAULT_SETTINGS: ClippingsPptSettings = {
@@ -14,7 +13,6 @@ export const DEFAULT_SETTINGS: ClippingsPptSettings = {
 	clippingsFolder: "Clippings",
 	outputSubfolder: "PDF",
 	exportPdfSubfolder: "exportPDF",
-	removeBranding: true,
 };
 
 export class ClippingsPptSettingTab extends PluginSettingTab {
