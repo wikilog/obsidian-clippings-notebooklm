@@ -369,7 +369,7 @@ var NotebookLMClient = class {
         onProgress?.("\u21B3 \uC694\uC57D \uC2E4\uD328: " + execDetail(describeErr));
         summary = "\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
       }
-      onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(5\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 15\uBD84 \uB300\uAE30)");
+      onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(5\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 20\uBD84 \uB300\uAE30)");
       let artifactId;
       {
         const maxRetries = 3;
@@ -517,7 +517,7 @@ ${text}`, "utf-8");
    */
   async waitForArtifact(path, notebookId, artifactId, onProgress) {
     const pollIntervalMs = 5 * 60 * 1e3;
-    const maxWaitMs = 15 * 60 * 1e3;
+    const maxWaitMs = 20 * 60 * 1e3;
     const tickMs = 1e3;
     const startTime = Date.now();
     let lastPollTime = Date.now();
@@ -548,7 +548,7 @@ ${text}`, "utf-8");
       }
       onProgress?.(`\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911... | ${timeStr}`);
       if (elapsed >= maxWaitMs) {
-        throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uAC04 \uCD08\uACFC (15\uBD84 \uCD08\uACFC)");
+        throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uAC04 \uCD08\uACFC (20\uBD84 \uCD08\uACFC)");
       }
     }
   }
@@ -842,6 +842,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
   }
   renderHistory() {
     if (!this.historyListEl) return;
+    const scrollTop = this.historyListEl.scrollTop;
     this.refreshBtn();
     this.historyListEl.empty();
     const history = this.plugin.history;
@@ -912,6 +913,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
         });
       }
     }
+    this.historyListEl.scrollTop = scrollTop;
   }
   formatDate(date) {
     const now = /* @__PURE__ */ new Date();

@@ -373,7 +373,7 @@ export class NotebookLMClient {
 			}
 
 			// 4. 슬라이드 생성 시작 (NotebookLM Studio — 비동기, 최대 3회 재시도)
-			onProgress?.("4/5  슬라이드 생성 시작 중...\n(5분마다 상태 확인, 최대 15분 대기)");
+			onProgress?.("4/5  슬라이드 생성 시작 중...\n(5분마다 상태 확인, 최대 20분 대기)");
 			let artifactId: string;
 			{
 				const maxRetries = 3;
@@ -542,7 +542,7 @@ export class NotebookLMClient {
 		onProgress?: (message: string) => void
 	): Promise<void> {
 		const pollIntervalMs = 5 * 60 * 1000; // 5분마다 API 폴링
-		const maxWaitMs = 15 * 60 * 1000;     // 최대 15분 대기
+		const maxWaitMs = 20 * 60 * 1000;     // 최대 20분 대기
 		const tickMs = 1000;                   // 1초마다 사이드바 업데이트
 		const startTime = Date.now();
 		let lastPollTime = Date.now();         // 첫 폴링은 5분 후
@@ -577,7 +577,7 @@ export class NotebookLMClient {
 			onProgress?.(`↳ 슬라이드 생성 중... | ${timeStr}`);
 
 			if (elapsed >= maxWaitMs) {
-				throw new Error("슬라이드 생성 시간 초과 (15분 초과)");
+				throw new Error("슬라이드 생성 시간 초과 (20분 초과)");
 			}
 		}
 	}

@@ -157,6 +157,7 @@ export class ClippingsSidebarView extends ItemView {
 
 	renderHistory(): void {
 		if (!this.historyListEl) return;
+		const scrollTop = this.historyListEl.scrollTop;
 		this.refreshBtn();
 		this.historyListEl.empty();
 
@@ -243,6 +244,7 @@ export class ClippingsSidebarView extends ItemView {
 				});
 			}
 		}
+		this.historyListEl.scrollTop = scrollTop;
 	}
 
 	private formatDate(date: Date): string {
