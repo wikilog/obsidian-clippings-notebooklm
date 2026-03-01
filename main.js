@@ -216,23 +216,29 @@ var NotebookLMClient = class {
     }
     try {
       onProgress?.("2/5  \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC911...\n(NotebookLM AI \uC778\uB371\uC2F1 \u2014 \uCD5C\uB300 1\uBD84 \uC18C\uC694)");
-      try {
-        if (sourceUrl) {
+      const truncated = content.length > 3e4 ? content.slice(0, 3e4) + "\n...(\uB0B4\uC6A9 \uC0DD\uB7B5)" : content;
+      let sourceAdded = false;
+      if (sourceUrl) {
+        try {
           await execFileAsync(
             path,
             ["source", "add", notebookId, "--url", sourceUrl],
             { timeout: 6e4 }
           );
-        } else {
-          const truncated = content.length > 3e4 ? content.slice(0, 3e4) + "\n...(\uB0B4\uC6A9 \uC0DD\uB7B5)" : content;
+          sourceAdded = true;
+        } catch {
+        }
+      }
+      if (!sourceAdded) {
+        try {
           await execFileAsync(
             path,
             ["source", "add", notebookId, "--text", truncated],
             { timeout: 6e4 }
           );
+        } catch (error) {
+          throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + String(error));
         }
-      } catch (error) {
-        throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + String(error));
       }
       onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uC751\uB2F5 \uB300\uAE30 \u2014 \uCD5C\uB300 2\uBD84 \uC18C\uC694)");
       let summary;
@@ -616,6 +622,16 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       const cardMeta = card.createEl("div", { cls: "clippings-sidebar-card-meta" });
       cardMeta.createEl("span", { text: `${item.modeIcon} ${item.mode}` });
       cardMeta.createEl("span", { text: this.formatDate(item.date) });
+      if (item.log && item.log.length > 0) {
+        const logEl = card.createEl("div", { cls: "clippings-sidebar-card-log" });
+        const entries = item.status === "running" ? item.log.slice(-3) : item.log.slice(-1);
+        for (const entry of entries) {
+          logEl.createEl("div", {
+            cls: "clippings-sidebar-card-log-entry",
+            text: entry
+          });
+        }
+      }
       if (item.status === "error" && item.errorMsg) {
         card.createEl("div", {
           cls: "clippings-sidebar-card-error",
@@ -764,27 +780,20 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
   }
   async handleGeneratePpt(file, btn, mode) {
     const modeConfig = MODES[mode];
-    if (this.isRunning) {
-      new import_obsidian5.Notice("\uC774\uBBF8 \uC791\uC5C5\uC774 \uC9C4\uD589 \uC911\uC785\uB2C8\uB2E4. \uC644\uB8CC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.", 4e3);
-      return;
-    }
+    if (this.isRunning) return;
     this.isRunning = true;
     if (btn) {
       btn.disabled = true;
       setButtonLoading(btn, modeConfig.label);
       btn.addClass("clippings-ppt-btn-loading");
     }
-    const notice = new import_obsidian5.Notice(
-      `${modeConfig.icon} ${modeConfig.label} \uC0DD\uC131 \uC911...
-NotebookLM\uC5D0 \uC5F0\uACB0 \uC911...`,
-      0
-    );
     const historyItem = {
       title: file.basename,
       mode: modeConfig.label,
       modeIcon: modeConfig.icon,
       status: "running",
-      date: /* @__PURE__ */ new Date()
+      date: /* @__PURE__ */ new Date(),
+      log: ["\uC5F0\uACB0 \uC911..."]
     };
     this.history.push(historyItem);
     this.refreshSidebar();
@@ -800,8 +809,9 @@ NotebookLM\uC5D0 \uC5F0\uACB0 \uC911...`,
         this.settings.removeBranding,
         source || void 0,
         (step) => {
-          notice.setMessage(`${modeConfig.icon} ${modeConfig.label}
-${step}`);
+          historyItem.log = historyItem.log ?? [];
+          historyItem.log.push(step.split("\n")[0]);
+          this.refreshSidebar();
         }
       );
       const outputFolder = `${this.settings.clippingsFolder}/${this.settings.outputSubfolder}`;
@@ -825,19 +835,13 @@ ${step}`);
       );
       historyItem.status = "success";
       historyItem.pptPath = pptPath;
+      historyItem.log?.push(`\u2713 \uC644\uB8CC: ${pptFileName}`);
       this.refreshSidebar();
-      notice.hide();
-      new import_obsidian5.Notice(
-        `${modeConfig.icon} ${modeConfig.label} \uC0DD\uC131 \uC644\uB8CC!
-${pptPath}`,
-        5e3
-      );
     } catch (error) {
       historyItem.status = "error";
       historyItem.errorMsg = this.classifyError(String(error));
+      historyItem.log?.push("\u2717 \uC624\uB958 \uBC1C\uC0DD");
       this.refreshSidebar();
-      notice.hide();
-      new import_obsidian5.Notice(this.classifyError(String(error)), 8e3);
       console.error("[Clippings NotebookLM] PPT \uC0DD\uC131 \uC624\uB958:", error);
     } finally {
       this.isRunning = false;

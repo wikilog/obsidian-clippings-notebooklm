@@ -193,26 +193,32 @@ export class NotebookLMClient {
 
 		try {
 			// 2. 소스 추가
-			// URL이 있으면 --url 우선 사용 (크기 제한 없음)
-			// 없으면 --text로 전달하되 30,000자로 제한
+			// URL이 있으면 --url 우선 시도, 실패 시 --text로 폴백
 			onProgress?.("2/5  소스 업로드 중...\n(NotebookLM AI 인덱싱 — 최대 1분 소요)");
-			try {
-				if (sourceUrl) {
+			const truncated = content.length > 30000
+				? content.slice(0, 30000) + "\n...(내용 생략)"
+				: content;
+			let sourceAdded = false;
+			if (sourceUrl) {
+				try {
 					await execFileAsync(
 						path, ["source", "add", notebookId, "--url", sourceUrl],
 						{ timeout: 60000 }
 					);
-				} else {
-					const truncated = content.length > 30000
-						? content.slice(0, 30000) + "\n...(내용 생략)"
-						: content;
+					sourceAdded = true;
+				} catch {
+					// URL 크롤링 실패 — text로 폴백
+				}
+			}
+			if (!sourceAdded) {
+				try {
 					await execFileAsync(
 						path, ["source", "add", notebookId, "--text", truncated],
 						{ timeout: 60000 }
 					);
+				} catch (error) {
+					throw new Error("소스 추가 실패: " + String(error));
 				}
-			} catch (error) {
-				throw new Error("소스 추가 실패: " + String(error));
 			}
 
 			// 3. 요약 요청

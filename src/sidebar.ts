@@ -13,6 +13,7 @@ export interface HistoryItem {
 	date: Date;
 	pptPath?: string;
 	errorMsg?: string;
+	log?: string[];
 }
 
 export class ClippingsSidebarView extends ItemView {
@@ -161,6 +162,20 @@ export class ClippingsSidebarView extends ItemView {
 			const cardMeta = card.createEl("div", { cls: "clippings-sidebar-card-meta" });
 			cardMeta.createEl("span", { text: `${item.modeIcon} ${item.mode}` });
 			cardMeta.createEl("span", { text: this.formatDate(item.date) });
+
+			// 진행 로그
+			if (item.log && item.log.length > 0) {
+				const logEl = card.createEl("div", { cls: "clippings-sidebar-card-log" });
+				const entries = item.status === "running"
+					? item.log.slice(-3)
+					: item.log.slice(-1);
+				for (const entry of entries) {
+					logEl.createEl("div", {
+						cls: "clippings-sidebar-card-log-entry",
+						text: entry,
+					});
+				}
+			}
 
 			// 오류 메시지
 			if (item.status === "error" && item.errorMsg) {

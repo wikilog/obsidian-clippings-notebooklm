@@ -1,4 +1,4 @@
-import { Plugin, Notice, TFile, MarkdownView, addIcon } from "obsidian";
+import { Plugin, TFile, MarkdownView, addIcon } from "obsidian";
 
 const NOTEBOOKLM_ICON_ID = "notebooklm";
 const NOTEBOOKLM_ICON_SVG = `
@@ -159,10 +159,7 @@ export default class ClippingsPptPlugin extends Plugin {
 		const modeConfig = MODES[mode];
 
 		// 동시 실행 방지
-		if (this.isRunning) {
-			new Notice("이미 작업이 진행 중입니다. 완료 후 다시 시도하세요.", 4000);
-			return;
-		}
+		if (this.isRunning) return;
 		this.isRunning = true;
 
 		if (btn) {
@@ -171,11 +168,6 @@ export default class ClippingsPptPlugin extends Plugin {
 			btn.addClass("clippings-ppt-btn-loading");
 		}
 
-		const notice = new Notice(
-			`${modeConfig.icon} ${modeConfig.label} 생성 중...\nNotebookLM에 연결 중...`,
-			0
-		);
-
 		// 히스토리에 진행 중 항목 추가
 		const historyItem: HistoryItem = {
 			title: file.basename,
@@ -183,6 +175,7 @@ export default class ClippingsPptPlugin extends Plugin {
 			modeIcon: modeConfig.icon,
 			status: "running",
 			date: new Date(),
+			log: ["연결 중..."],
 		};
 		this.history.push(historyItem);
 		this.refreshSidebar();
@@ -192,9 +185,8 @@ export default class ClippingsPptPlugin extends Plugin {
 			const { frontmatter, body } = this.parseFrontmatter(content);
 
 			const title = frontmatter.title || file.basename;
-
-			// NotebookLM 호출 — 각 단계마다 우측 하단 Notice 텍스트가 갱신됩니다
 			const source = frontmatter.source || "";
+
 			const result = await this.nlmClient.generateContent(
 				title,
 				body,
@@ -202,7 +194,9 @@ export default class ClippingsPptPlugin extends Plugin {
 				this.settings.removeBranding,
 				source || undefined,
 				(step) => {
-					notice.setMessage(`${modeConfig.icon} ${modeConfig.label}\n${step}`);
+					historyItem.log = historyItem.log ?? [];
+					historyItem.log.push(step.split("\n")[0]);
+					this.refreshSidebar();
 				}
 			);
 
@@ -232,21 +226,14 @@ export default class ClippingsPptPlugin extends Plugin {
 			// 히스토리 성공 업데이트
 			historyItem.status = "success";
 			historyItem.pptPath = pptPath;
+			historyItem.log?.push(`✓ 완료: ${pptFileName}`);
 			this.refreshSidebar();
-
-			notice.hide();
-			new Notice(
-				`${modeConfig.icon} ${modeConfig.label} 생성 완료!\n${pptPath}`,
-				5000
-			);
 		} catch (error) {
 			// 히스토리 실패 업데이트
 			historyItem.status = "error";
 			historyItem.errorMsg = this.classifyError(String(error));
+			historyItem.log?.push("✗ 오류 발생");
 			this.refreshSidebar();
-
-			notice.hide();
-			new Notice(this.classifyError(String(error)), 8000);
 			console.error("[Clippings NotebookLM] PPT 생성 오류:", error);
 		} finally {
 			this.isRunning = false;

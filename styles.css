@@ -124,6 +124,21 @@
 	color: var(--text-muted);
 }
 
+.clippings-sidebar-card-log {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	margin-top: 2px;
+}
+
+.clippings-sidebar-card-log-entry {
+	font-size: 11px;
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .clippings-sidebar-card-error {
 	font-size: 11px;
 	color: var(--color-red);
