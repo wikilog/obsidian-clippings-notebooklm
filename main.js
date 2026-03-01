@@ -638,7 +638,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       cardMeta.createEl("span", { text: this.formatDate(item.date) });
       if (item.log && item.log.length > 0) {
         const logEl = card.createEl("div", { cls: "clippings-sidebar-card-log" });
-        const entries = item.status === "running" ? item.log.slice(-3) : item.log.slice(-1);
+        const entries = item.status === "success" ? item.log.slice(-1) : item.log.slice(-3);
         for (const entry of entries) {
           logEl.createEl("div", {
             cls: "clippings-sidebar-card-log-entry",
@@ -800,9 +800,13 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
       historyItem.log?.push(`\u2713 \uC644\uB8CC: ${pptFileName}`);
       this.refreshSidebar();
     } catch (error) {
+      const rawMsg = String(error);
       historyItem.status = "error";
-      historyItem.errorMsg = this.classifyError(String(error));
-      historyItem.log?.push("\u2717 \uC624\uB958 \uBC1C\uC0DD");
+      historyItem.errorMsg = this.classifyError(rawMsg);
+      historyItem.log?.push("\u2717 \uC624\uB958: " + rawMsg.split("\n")[0]);
+      if (rawMsg.includes("\n")) {
+        historyItem.log?.push(rawMsg.split("\n")[1]?.trim() ?? "");
+      }
       this.refreshSidebar();
       console.error("[Clippings NotebookLM] PPT \uC0DD\uC131 \uC624\uB958:", error);
     } finally {
