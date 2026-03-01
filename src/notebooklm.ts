@@ -221,6 +221,8 @@ export class NotebookLMClient {
 			);
 			notebookId = this.extractId(stdout);
 			onProgress?.("↳ 노트북 ID: " + notebookId);
+			// 노트북이 소스를 받을 준비가 될 때까지 잠시 대기
+			await new Promise(r => setTimeout(r, 3000));
 		} catch (error) {
 			throw new Error("노트북 생성 실패: " + execDetail(error));
 		}
@@ -261,7 +263,7 @@ export class NotebookLMClient {
 					: await this.convertMarkdownToPdf(title, truncated);
 				if (tmpPdfPath) {
 					exportedPdfPath = tmpPdfPath;
-					onProgress?.("↳ PDF 변환 성공: " + tmpPdfPath.split("/").pop());
+					onProgress?.("↳ PDF 변환 성공: " + tmpPdfPath);
 					try {
 						await execFileAsync(
 							path, ["source", "add", notebookId, "--file", tmpPdfPath],

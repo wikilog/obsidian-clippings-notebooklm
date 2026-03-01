@@ -239,6 +239,7 @@ var NotebookLMClient = class {
       );
       notebookId = this.extractId(stdout);
       onProgress?.("\u21B3 \uB178\uD2B8\uBD81 ID: " + notebookId);
+      await new Promise((r) => setTimeout(r, 3e3));
     } catch (error) {
       throw new Error("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
     }
@@ -270,7 +271,7 @@ var NotebookLMClient = class {
         const tmpPdfPath = pdfProvider ? await pdfProvider() : await this.convertMarkdownToPdf(title, truncated);
         if (tmpPdfPath) {
           exportedPdfPath = tmpPdfPath;
-          onProgress?.("\u21B3 PDF \uBCC0\uD658 \uC131\uACF5: " + tmpPdfPath.split("/").pop());
+          onProgress?.("\u21B3 PDF \uBCC0\uD658 \uC131\uACF5: " + tmpPdfPath);
           try {
             await execFileAsync(
               path,
