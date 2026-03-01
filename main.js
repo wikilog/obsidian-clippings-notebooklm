@@ -671,6 +671,8 @@ var DEFAULT_SETTINGS = {
   outputSubfolder: "PDF",
   exportPdfSubfolder: "exportPDF"
 };
+var isKorean = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+var t = (ko, en) => isKorean ? ko : en;
 var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
@@ -680,58 +682,68 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: `Clippings NotebookLM v${this.plugin.manifest.version}` });
-    containerEl.createEl("h3", { text: "NotebookLM \uC5F0\uB3D9" });
-    const loginSetting = new import_obsidian3.Setting(containerEl).setName("NotebookLM \uB85C\uADF8\uC778").setDesc("Google \uACC4\uC815\uC73C\uB85C NotebookLM\uC5D0 \uB85C\uADF8\uC778\uD569\uB2C8\uB2E4.");
+    containerEl.createEl("h3", { text: t("NotebookLM \uC5F0\uB3D9", "NotebookLM Integration") });
+    const loginSetting = new import_obsidian3.Setting(containerEl).setName(t("NotebookLM \uB85C\uADF8\uC778", "NotebookLM Login")).setDesc(t(
+      "Google \uACC4\uC815\uC73C\uB85C NotebookLM\uC5D0 \uB85C\uADF8\uC778\uD569\uB2C8\uB2E4.",
+      "Sign in to NotebookLM with your Google account."
+    ));
     const statusEl = loginSetting.descEl.createEl("div", {
       cls: "clippings-ppt-login-status"
     });
     this.checkLoginStatus(statusEl);
     loginSetting.addButton(
-      (button) => button.setButtonText("\u{1F310} \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778").onClick(async () => {
+      (button) => button.setButtonText(t("\u{1F310} \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778", "\u{1F310} Login via Browser")).onClick(async () => {
         button.setDisabled(true);
         await this.plugin.nlmClient.launchLogin();
         button.setDisabled(false);
       })
     );
     loginSetting.addButton(
-      (button) => button.setButtonText("\uACC4\uC815 \uBCC0\uACBD").onClick(async () => {
+      (button) => button.setButtonText(t("\uACC4\uC815 \uBCC0\uACBD", "Switch Account")).onClick(async () => {
         button.setDisabled(true);
         await this.plugin.nlmClient.launchAccountSwitch();
         button.setDisabled(false);
       })
     );
     loginSetting.addButton(
-      (button) => button.setButtonText("\uC0C1\uD0DC \uD655\uC778").onClick(async () => {
+      (button) => button.setButtonText(t("\uC0C1\uD0DC \uD655\uC778", "Check Status")).onClick(async () => {
         button.setDisabled(true);
-        button.setButtonText("\uD655\uC778 \uC911...");
+        button.setButtonText(t("\uD655\uC778 \uC911...", "Checking..."));
         await this.checkLoginStatus(statusEl);
         button.setDisabled(false);
-        button.setButtonText("\uC0C1\uD0DC \uD655\uC778");
+        button.setButtonText(t("\uC0C1\uD0DC \uD655\uC778", "Check Status"));
       })
     );
-    new import_obsidian3.Setting(containerEl).setName("nlm CLI \uACBD\uB85C").setDesc(
-      "notebooklm-mcp-cli\uC758 nlm \uC2E4\uD589 \uD30C\uC77C \uACBD\uB85C. \uAE30\uBCF8\uAC12 'nlm'\uC73C\uB85C \uCC3E\uC9C0 \uBABB\uD560 \uACBD\uC6B0 \uC808\uB300 \uACBD\uB85C\uB97C \uC785\uB825\uD558\uC138\uC694. \uC608: /Users/yourname/.local/bin/nlm"
-    ).addText(
+    new import_obsidian3.Setting(containerEl).setName(t("nlm CLI \uACBD\uB85C", "nlm CLI Path")).setDesc(t(
+      "notebooklm-mcp-cli\uC758 nlm \uC2E4\uD589 \uD30C\uC77C \uACBD\uB85C. \uAE30\uBCF8\uAC12 'nlm'\uC73C\uB85C \uCC3E\uC9C0 \uBABB\uD560 \uACBD\uC6B0 \uC808\uB300 \uACBD\uB85C\uB97C \uC785\uB825\uD558\uC138\uC694. \uC608: /Users/yourname/.local/bin/nlm",
+      "Path to the nlm executable. If 'nlm' is not found in PATH, enter the full path. e.g. /Users/yourname/.local/bin/nlm"
+    )).addText(
       (text) => text.setPlaceholder("nlm").setValue(this.plugin.settings.nlmPath).onChange(async (value) => {
         this.plugin.settings.nlmPath = value || "nlm";
         this.plugin.nlmClient.setPath(this.plugin.settings.nlmPath);
         await this.plugin.saveSettings();
       })
     );
-    containerEl.createEl("h3", { text: "\uD3F4\uB354 \uC124\uC815" });
-    new import_obsidian3.Setting(containerEl).setName("Clippings \uD3F4\uB354").setDesc("\uC6F9 \uD074\uB9AC\uD551\uC774 \uC800\uC7A5\uB418\uB294 \uD3F4\uB354 \uACBD\uB85C").addText(
+    containerEl.createEl("h3", { text: t("\uD3F4\uB354 \uC124\uC815", "Folder Settings") });
+    new import_obsidian3.Setting(containerEl).setName(t("Clippings \uD3F4\uB354", "Clippings Folder")).setDesc(t("\uC6F9 \uD074\uB9AC\uD551\uC774 \uC800\uC7A5\uB418\uB294 \uD3F4\uB354 \uACBD\uB85C", "Folder path where web clips are stored")).addText(
       (text) => text.setPlaceholder("Clippings").setValue(this.plugin.settings.clippingsFolder).onChange(async (value) => {
         this.plugin.settings.clippingsFolder = value || "Clippings";
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian3.Setting(containerEl).setName("PDF \uC800\uC7A5 \uD558\uC704 \uD3F4\uB354").setDesc("Clippings \uD3F4\uB354 \uC548\uC5D0 PDF\uAC00 \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85").addText(
+    new import_obsidian3.Setting(containerEl).setName(t("PDF \uC800\uC7A5 \uD558\uC704 \uD3F4\uB354", "PDF Output Subfolder")).setDesc(t(
+      "Clippings \uD3F4\uB354 \uC548\uC5D0 PDF\uAC00 \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85",
+      "Subfolder inside Clippings where generated PDFs are saved"
+    )).addText(
       (text) => text.setPlaceholder("PDF").setValue(this.plugin.settings.outputSubfolder).onChange(async (value) => {
         this.plugin.settings.outputSubfolder = value || "PDF";
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian3.Setting(containerEl).setName("PDF \uB0B4\uBCF4\uB0B4\uAE30 \uC784\uC2DC \uC800\uC7A5 \uD3F4\uB354").setDesc("NotebookLM \uC5C5\uB85C\uB4DC\uC6A9 PDF\uAC00 \uC784\uC2DC \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85 (\uC5C5\uB85C\uB4DC \uD6C4 \uC790\uB3D9 \uC0AD\uC81C)").addText(
+    new import_obsidian3.Setting(containerEl).setName(t("PDF \uB0B4\uBCF4\uB0B4\uAE30 \uC784\uC2DC \uC800\uC7A5 \uD3F4\uB354", "PDF Export Temp Folder")).setDesc(t(
+      "NotebookLM \uC5C5\uB85C\uB4DC\uC6A9 PDF\uAC00 \uC784\uC2DC \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85 (\uC5C5\uB85C\uB4DC \uD6C4 \uC790\uB3D9 \uC0AD\uC81C)",
+      "Subfolder for temporary PDF storage before upload (auto-deleted after upload)"
+    )).addText(
       (text) => text.setPlaceholder("exportPDF").setValue(this.plugin.settings.exportPdfSubfolder).onChange(async (value) => {
         this.plugin.settings.exportPdfSubfolder = value || "exportPDF";
         await this.plugin.saveSettings();
@@ -740,20 +752,26 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
   }
   async checkLoginStatus(statusEl) {
     statusEl.empty();
-    statusEl.setText("\uD655\uC778 \uC911...");
+    statusEl.setText(t("\uD655\uC778 \uC911...", "Checking..."));
     statusEl.removeClass("clippings-ppt-status-ok", "clippings-ppt-status-error");
     const installed = await this.plugin.nlmClient.isInstalled();
     if (!installed) {
-      statusEl.setText("\u26A0 nlm CLI \uBBF8\uC124\uCE58 \u2014 \uD130\uBBF8\uB110\uC5D0\uC11C: uv tool install notebooklm-mcp-cli");
+      statusEl.setText(t(
+        "\u26A0 nlm CLI \uBBF8\uC124\uCE58 \u2014 \uD130\uBBF8\uB110\uC5D0\uC11C: uv tool install notebooklm-mcp-cli",
+        "\u26A0 nlm CLI not installed \u2014 run: uv tool install notebooklm-mcp-cli"
+      ));
       statusEl.addClass("clippings-ppt-status-error");
       return;
     }
     const loggedIn = await this.plugin.nlmClient.isLoggedIn();
     if (loggedIn) {
-      statusEl.setText("\u2713 \uB85C\uADF8\uC778\uB428");
+      statusEl.setText(t("\u2713 \uB85C\uADF8\uC778\uB428", "\u2713 Logged in"));
       statusEl.addClass("clippings-ppt-status-ok");
     } else {
-      statusEl.setText("\u2717 \uB85C\uADF8\uC778 \uD544\uC694 \u2014 '\uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778' \uBC84\uD2BC\uC744 \uD074\uB9AD\uD558\uC138\uC694");
+      statusEl.setText(t(
+        "\u2717 \uB85C\uADF8\uC778 \uD544\uC694 \u2014 '\uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778' \uBC84\uD2BC\uC744 \uD074\uB9AD\uD558\uC138\uC694",
+        "\u2717 Not logged in \u2014 click 'Login via Browser'"
+      ));
       statusEl.addClass("clippings-ppt-status-error");
     }
   }

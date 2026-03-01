@@ -15,6 +15,9 @@ export const DEFAULT_SETTINGS: ClippingsPptSettings = {
 	exportPdfSubfolder: "exportPDF",
 };
 
+const isKorean = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+const t = (ko: string, en: string): string => isKorean ? ko : en;
+
 export class ClippingsPptSettingTab extends PluginSettingTab {
 	plugin: ClippingsPptPlugin;
 
@@ -30,11 +33,14 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 		containerEl.createEl("h2", { text: `Clippings NotebookLM v${this.plugin.manifest.version}` });
 
 		// NotebookLM 연동 섹션
-		containerEl.createEl("h3", { text: "NotebookLM 연동" });
+		containerEl.createEl("h3", { text: t("NotebookLM 연동", "NotebookLM Integration") });
 
 		const loginSetting = new Setting(containerEl)
-			.setName("NotebookLM 로그인")
-			.setDesc("Google 계정으로 NotebookLM에 로그인합니다.");
+			.setName(t("NotebookLM 로그인", "NotebookLM Login"))
+			.setDesc(t(
+				"Google 계정으로 NotebookLM에 로그인합니다.",
+				"Sign in to NotebookLM with your Google account."
+			));
 
 		const statusEl = loginSetting.descEl.createEl("div", {
 			cls: "clippings-ppt-login-status",
@@ -42,42 +48,42 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 
 		this.checkLoginStatus(statusEl);
 
-		// 브라우저 로그인 버튼 (비차단 — OAuth 흐름을 별도 프로세스로 실행)
 		loginSetting.addButton((button) =>
-			button.setButtonText("🌐 브라우저로 로그인").onClick(async () => {
+			button.setButtonText(t("🌐 브라우저로 로그인", "🌐 Login via Browser")).onClick(async () => {
 				button.setDisabled(true);
 				await this.plugin.nlmClient.launchLogin();
 				button.setDisabled(false);
 			})
 		);
 
-		// 계정 변경 버튼 (기존 인증 삭제 후 새 계정으로 재로그인)
 		loginSetting.addButton((button) =>
-			button.setButtonText("계정 변경").onClick(async () => {
+			button.setButtonText(t("계정 변경", "Switch Account")).onClick(async () => {
 				button.setDisabled(true);
 				await this.plugin.nlmClient.launchAccountSwitch();
 				button.setDisabled(false);
 			})
 		);
 
-		// 상태 확인 버튼 (로그인 완료 후 클릭)
 		loginSetting.addButton((button) =>
-			button.setButtonText("상태 확인").onClick(async () => {
+			button.setButtonText(t("상태 확인", "Check Status")).onClick(async () => {
 				button.setDisabled(true);
-				button.setButtonText("확인 중...");
+				button.setButtonText(t("확인 중...", "Checking..."));
 				await this.checkLoginStatus(statusEl);
 				button.setDisabled(false);
-				button.setButtonText("상태 확인");
+				button.setButtonText(t("상태 확인", "Check Status"));
 			})
 		);
 
 		new Setting(containerEl)
-			.setName("nlm CLI 경로")
-			.setDesc(
+			.setName(t("nlm CLI 경로", "nlm CLI Path"))
+			.setDesc(t(
 				"notebooklm-mcp-cli의 nlm 실행 파일 경로. " +
 				"기본값 'nlm'으로 찾지 못할 경우 절대 경로를 입력하세요. " +
-				"예: /Users/yourname/.local/bin/nlm"
-			)
+				"예: /Users/yourname/.local/bin/nlm",
+				"Path to the nlm executable. " +
+				"If 'nlm' is not found in PATH, enter the full path. " +
+				"e.g. /Users/yourname/.local/bin/nlm"
+			))
 			.addText((text) =>
 				text
 					.setPlaceholder("nlm")
@@ -89,12 +95,11 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 					})
 			);
 
-		// 폴더 설정
-		containerEl.createEl("h3", { text: "폴더 설정" });
+		containerEl.createEl("h3", { text: t("폴더 설정", "Folder Settings") });
 
 		new Setting(containerEl)
-			.setName("Clippings 폴더")
-			.setDesc("웹 클리핑이 저장되는 폴더 경로")
+			.setName(t("Clippings 폴더", "Clippings Folder"))
+			.setDesc(t("웹 클리핑이 저장되는 폴더 경로", "Folder path where web clips are stored"))
 			.addText((text) =>
 				text
 					.setPlaceholder("Clippings")
@@ -106,8 +111,11 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("PDF 저장 하위 폴더")
-			.setDesc("Clippings 폴더 안에 PDF가 저장될 하위 폴더명")
+			.setName(t("PDF 저장 하위 폴더", "PDF Output Subfolder"))
+			.setDesc(t(
+				"Clippings 폴더 안에 PDF가 저장될 하위 폴더명",
+				"Subfolder inside Clippings where generated PDFs are saved"
+			))
 			.addText((text) =>
 				text
 					.setPlaceholder("PDF")
@@ -119,8 +127,11 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("PDF 내보내기 임시 저장 폴더")
-			.setDesc("NotebookLM 업로드용 PDF가 임시 저장될 하위 폴더명 (업로드 후 자동 삭제)")
+			.setName(t("PDF 내보내기 임시 저장 폴더", "PDF Export Temp Folder"))
+			.setDesc(t(
+				"NotebookLM 업로드용 PDF가 임시 저장될 하위 폴더명 (업로드 후 자동 삭제)",
+				"Subfolder for temporary PDF storage before upload (auto-deleted after upload)"
+			))
 			.addText((text) =>
 				text
 					.setPlaceholder("exportPDF")
@@ -134,22 +145,28 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 
 	private async checkLoginStatus(statusEl: HTMLElement): Promise<void> {
 		statusEl.empty();
-		statusEl.setText("확인 중...");
+		statusEl.setText(t("확인 중...", "Checking..."));
 		statusEl.removeClass("clippings-ppt-status-ok", "clippings-ppt-status-error");
 
 		const installed = await this.plugin.nlmClient.isInstalled();
 		if (!installed) {
-			statusEl.setText("⚠ nlm CLI 미설치 — 터미널에서: uv tool install notebooklm-mcp-cli");
+			statusEl.setText(t(
+				"⚠ nlm CLI 미설치 — 터미널에서: uv tool install notebooklm-mcp-cli",
+				"⚠ nlm CLI not installed — run: uv tool install notebooklm-mcp-cli"
+			));
 			statusEl.addClass("clippings-ppt-status-error");
 			return;
 		}
 
 		const loggedIn = await this.plugin.nlmClient.isLoggedIn();
 		if (loggedIn) {
-			statusEl.setText("✓ 로그인됨");
+			statusEl.setText(t("✓ 로그인됨", "✓ Logged in"));
 			statusEl.addClass("clippings-ppt-status-ok");
 		} else {
-			statusEl.setText("✗ 로그인 필요 — '브라우저로 로그인' 버튼을 클릭하세요");
+			statusEl.setText(t(
+				"✗ 로그인 필요 — '브라우저로 로그인' 버튼을 클릭하세요",
+				"✗ Not logged in — click 'Login via Browser'"
+			));
 			statusEl.addClass("clippings-ppt-status-error");
 		}
 	}
