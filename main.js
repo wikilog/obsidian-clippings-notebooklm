@@ -253,13 +253,12 @@ var NotebookLMClient = class {
         try {
           await execFileAsync(
             path,
-            ["source", "add", notebookId, "--url", sourceUrl],
-            { timeout: 6e4 }
+            ["source", "add", notebookId, "--url", sourceUrl, "--wait"],
+            { timeout: 3e5 }
           );
           sourceAdded = true;
           uploadSucceeded = true;
-          onProgress?.("\u21B3 URL \uC5C5\uB85C\uB4DC \uC644\uB8CC \u2014 \uC778\uB371\uC2F1 \uB300\uAE30 \uC911...");
-          await new Promise((r) => setTimeout(r, 6e4));
+          onProgress?.("\u21B3 URL \uC5C5\uB85C\uB4DC \uC644\uB8CC");
         } catch {
           onProgress?.("\u21B3 URL \uD06C\uB864\uB9C1 \uC2E4\uD328 \u2192 PDF \uBCC0\uD658\uC73C\uB85C \uC804\uD658");
         }
@@ -275,13 +274,12 @@ var NotebookLMClient = class {
           try {
             await execFileAsync(
               path,
-              ["source", "add", notebookId, "--file", tmpPdfPath],
-              { timeout: 6e4 }
+              ["source", "add", notebookId, "--file", tmpPdfPath, "--wait"],
+              { timeout: 3e5 }
             );
             sourceAdded = true;
             uploadSucceeded = true;
-            onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC644\uB8CC \u2014 \uC778\uB371\uC2F1 \uB300\uAE30 \uC911...");
-            await new Promise((r) => setTimeout(r, 6e4));
+            onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC644\uB8CC");
           } catch (pdfErr) {
             onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC2E4\uD328: " + execDetail(pdfErr) + "\n\u2192 \uD14D\uC2A4\uD2B8 \uD30C\uC77C\uB85C \uC804\uD658");
           }
@@ -300,21 +298,19 @@ var NotebookLMClient = class {
           await (0, import_promises.writeFile)(tmpTxtPath, cleanedText, "utf-8");
           await execFileAsync(
             path,
-            ["source", "add", notebookId, "--file", tmpTxtPath],
-            { timeout: 6e4 }
+            ["source", "add", notebookId, "--file", tmpTxtPath, "--wait"],
+            { timeout: 3e5 }
           );
-          onProgress?.("\u21B3 txt \uC5C5\uB85C\uB4DC \uC644\uB8CC \u2014 \uC778\uB371\uC2F1 \uB300\uAE30 \uC911...");
-          await new Promise((r) => setTimeout(r, 6e4));
+          onProgress?.("\u21B3 txt \uC5C5\uB85C\uB4DC \uC644\uB8CC");
         } catch (txtErr) {
           onProgress?.("\u21B3 txt \uD30C\uC77C \uC5C5\uB85C\uB4DC \uC2E4\uD328: " + execDetail(txtErr) + "\n\u2192 --text \uC9C1\uC811 \uC804\uB2EC \uC2DC\uB3C4");
           try {
             await execFileAsync(
               path,
               ["source", "add", notebookId, "--text", cleanedText],
-              { timeout: 6e4 }
+              { timeout: 3e5 }
             );
-            onProgress?.("\u21B3 \uD14D\uC2A4\uD2B8 \uCD94\uAC00 \uC644\uB8CC \u2014 \uC778\uB371\uC2F1 \uB300\uAE30 \uC911...");
-            await new Promise((r) => setTimeout(r, 6e4));
+            onProgress?.("\u21B3 \uD14D\uC2A4\uD2B8 \uCD94\uAC00 \uC644\uB8CC");
           } catch (error) {
             throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + execDetail(error));
           }

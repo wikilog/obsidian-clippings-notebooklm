@@ -197,7 +197,6 @@
 
 /* 모드 선택 모달 */
 .clippings-ppt-modal {
-	max-width: 480px;
 	text-align: center;
 }
 
@@ -206,12 +205,12 @@
 	margin-bottom: 16px;
 }
 
-
 .clippings-ppt-modes {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 	margin-bottom: 16px;
+	width: 100%;
 }
 
 .clippings-ppt-mode-card {
