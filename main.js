@@ -643,8 +643,7 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Clippings NotebookLM" });
-    containerEl.createEl("p", { text: `v${this.plugin.manifest.version}`, cls: "clippings-ppt-version" });
+    containerEl.createEl("h2", { text: `Clippings NotebookLM v${this.plugin.manifest.version}` });
     containerEl.createEl("h3", { text: "NotebookLM \uC5F0\uB3D9" });
     const loginSetting = new import_obsidian3.Setting(containerEl).setName("NotebookLM \uB85C\uADF8\uC778").setDesc("Google \uACC4\uC815\uC73C\uB85C NotebookLM\uC5D0 \uB85C\uADF8\uC778\uD569\uB2C8\uB2E4.");
     const statusEl = loginSetting.descEl.createEl("div", {
