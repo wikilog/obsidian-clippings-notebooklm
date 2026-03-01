@@ -23,7 +23,7 @@ export class ModeSelectionModal extends Modal {
 
 		contentEl.createEl("h2", { text: "리포트 모드 선택" });
 		contentEl.createEl("p", {
-			text: "어떤 스타일의 PPT를 생성할까요?",
+			text: "어떤 스타일의 PDF를 생성할까요?",
 			cls: "clippings-ppt-modal-desc",
 		});
 

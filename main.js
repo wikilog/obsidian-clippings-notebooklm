@@ -586,7 +586,7 @@ var ModeSelectionModal = class extends import_obsidian2.Modal {
     contentEl.addClass("clippings-ppt-modal");
     contentEl.createEl("h2", { text: "\uB9AC\uD3EC\uD2B8 \uBAA8\uB4DC \uC120\uD0DD" });
     contentEl.createEl("p", {
-      text: "\uC5B4\uB5A4 \uC2A4\uD0C0\uC77C\uC758 PPT\uB97C \uC0DD\uC131\uD560\uAE4C\uC694?",
+      text: "\uC5B4\uB5A4 \uC2A4\uD0C0\uC77C\uC758 PDF\uB97C \uC0DD\uC131\uD560\uAE4C\uC694?",
       cls: "clippings-ppt-modal-desc"
     });
     const modesContainer = contentEl.createDiv({
@@ -690,7 +690,7 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian3.Setting(containerEl).setName("PPT \uC800\uC7A5 \uD558\uC704 \uD3F4\uB354").setDesc("Clippings \uD3F4\uB354 \uC548\uC5D0 PPT\uAC00 \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85").addText(
+    new import_obsidian3.Setting(containerEl).setName("PDF \uC800\uC7A5 \uD558\uC704 \uD3F4\uB354").setDesc("Clippings \uD3F4\uB354 \uC548\uC5D0 PDF\uAC00 \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85").addText(
       (text) => text.setPlaceholder("PDF").setValue(this.plugin.settings.outputSubfolder).onChange(async (value) => {
         this.plugin.settings.outputSubfolder = value || "PDF";
         await this.plugin.saveSettings();
@@ -948,7 +948,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
     });
     this.addCommand({
       id: "generate-ppt-notebooklm",
-      name: "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30",
+      name: "NotebookLM\uC73C\uB85C PDF \uB9CC\uB4E4\uAE30",
       checkCallback: (checking) => {
         if (this.isRunning) return false;
         const view = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
@@ -1047,7 +1047,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
       historyItem.errorMsg = this.classifyError(rawMsg);
       historyItem.log?.push("\u2717 \uC624\uB958: " + rawMsg);
       this.refreshSidebar();
-      console.error("[Clippings NotebookLM] PPT \uC0DD\uC131 \uC624\uB958:", error);
+      console.error("[Clippings NotebookLM] PDF \uC0DD\uC131 \uC624\uB958:", error);
     } finally {
       this.isRunning = false;
       this.refreshSidebar();
@@ -1145,20 +1145,20 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
     } else if (msg.includes("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328")) {
       return "\u{1F3A8} \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
     } else if (msg.includes("\uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328")) {
-      return "\u2B07\uFE0F PPTX \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
+      return "\u2B07\uFE0F PDF \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
     } else if (msg.includes("\uB85C\uADF8\uC778") || msg.includes("login")) {
       return "\u{1F510} NotebookLM \uB85C\uADF8\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.\n\uC124\uC815 \u2192 \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778";
     } else if (msg.includes("\uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4") || msg.includes("not found") || msg.includes("ENOENT")) {
       return "\u26A0\uFE0F nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uC124\uC815\uC5D0\uC11C \uACBD\uB85C\uB97C \uD655\uC778\uD558\uC138\uC694.";
     }
-    return "\u274C PPT \uC0DD\uC131 \uC2E4\uD328.\n\uAC1C\uBC1C\uC790 \uB3C4\uAD6C \uCF58\uC194(Ctrl+Shift+I)\uC5D0\uC11C \uC790\uC138\uD55C \uC624\uB958\uB97C \uD655\uC778\uD558\uC138\uC694.";
+    return "\u274C PDF \uC0DD\uC131 \uC2E4\uD328.\n\uAC1C\uBC1C\uC790 \uB3C4\uAD6C \uCF58\uC194(Ctrl+Shift+I)\uC5D0\uC11C \uC790\uC138\uD55C \uC624\uB958\uB97C \uD655\uC778\uD558\uC138\uC694.";
   }
   async insertSummaryAndLink(file, originalContent, summary, pptPath, modeConfig) {
     const { raw: rawFrontmatter, body } = this.parseFrontmatter(originalContent);
     const summaryBlock = `> [!summary] ${modeConfig.icon} ${modeConfig.label}
 ` + summary.split("\n").map((line) => `> ${line}`).join("\n") + `
 >
-> \u{1F4CE} **PPT:** [[${pptPath}]]`;
+> \u{1F4CE} **PDF:** [[${pptPath}]]`;
     let newBody;
     if (body.includes("> [!summary]")) {
       newBody = body.replace(

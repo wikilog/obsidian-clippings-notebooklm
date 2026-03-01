@@ -54,7 +54,7 @@ export default class ClippingsPptPlugin extends Plugin {
 		// Command Palette 커맨드
 		this.addCommand({
 			id: "generate-ppt-notebooklm",
-			name: "NotebookLM으로 PPT 만들기",
+			name: "NotebookLM으로 PDF 만들기",
 			checkCallback: (checking: boolean) => {
 				if (this.isRunning) return false;
 				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
@@ -174,7 +174,7 @@ export default class ClippingsPptPlugin extends Plugin {
 			// 원시 에러 전체를 로그에 기록 (pre-wrap으로 줄바꿈 표시)
 			historyItem.log?.push("✗ 오류: " + rawMsg);
 			this.refreshSidebar();
-			console.error("[Clippings NotebookLM] PPT 생성 오류:", error);
+			console.error("[Clippings NotebookLM] PDF 생성 오류:", error);
 		} finally {
 			this.isRunning = false;
 			this.refreshSidebar();
@@ -280,13 +280,13 @@ export default class ClippingsPptPlugin extends Plugin {
 		} else if (msg.includes("슬라이드 생성 실패")) {
 			return "🎨 슬라이드 생성 실패.\n잠시 후 다시 시도하세요.";
 		} else if (msg.includes("다운로드 실패")) {
-			return "⬇️ PPTX 다운로드 실패.\n잠시 후 다시 시도하세요.";
+			return "⬇️ PDF 다운로드 실패.\n잠시 후 다시 시도하세요.";
 		} else if (msg.includes("로그인") || msg.includes("login")) {
 			return "🔐 NotebookLM 로그인이 필요합니다.\n설정 → 브라우저로 로그인";
 		} else if (msg.includes("찾을 수 없습니다") || msg.includes("not found") || msg.includes("ENOENT")) {
 			return "⚠️ nlm CLI를 찾을 수 없습니다.\n설정에서 경로를 확인하세요.";
 		}
-		return "❌ PPT 생성 실패.\n개발자 도구 콘솔(Ctrl+Shift+I)에서 자세한 오류를 확인하세요.";
+		return "❌ PDF 생성 실패.\n개발자 도구 콘솔(Ctrl+Shift+I)에서 자세한 오류를 확인하세요.";
 	}
 
 	private async insertSummaryAndLink(
@@ -304,7 +304,7 @@ export default class ClippingsPptPlugin extends Plugin {
 				.split("\n")
 				.map((line) => `> ${line}`)
 				.join("\n") +
-			`\n>\n> 📎 **PPT:** [[${pptPath}]]`;
+			`\n>\n> 📎 **PDF:** [[${pptPath}]]`;
 
 		let newBody: string;
 		if (body.includes("> [!summary]")) {

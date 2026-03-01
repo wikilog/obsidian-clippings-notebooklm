@@ -106,8 +106,8 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("PPT 저장 하위 폴더")
-			.setDesc("Clippings 폴더 안에 PPT가 저장될 하위 폴더명")
+			.setName("PDF 저장 하위 폴더")
+			.setDesc("Clippings 폴더 안에 PDF가 저장될 하위 폴더명")
 			.addText((text) =>
 				text
 					.setPlaceholder("PDF")
