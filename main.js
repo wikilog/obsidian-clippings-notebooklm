@@ -527,11 +527,11 @@ ${text}`, "utf-8");
    * Studio artifact가 "completed" 상태가 될 때까지 폴링한다.
    * - 5분 간격으로 studio status --json 호출
    * - 30초마다 사이드바에 경과 시간 표시
-   * - 최대 10분 대기 후 타임아웃
+   * - 최대 15분 대기 후 타임아웃
    */
   async waitForArtifact(path, notebookId, artifactId, onProgress) {
     const pollIntervalMs = 5 * 60 * 1e3;
-    const maxWaitMs = 10 * 60 * 1e3;
+    const maxWaitMs = 15 * 60 * 1e3;
     const tickMs = 30 * 1e3;
     const startTime = Date.now();
     let lastPollTime = Date.now();
@@ -555,17 +555,14 @@ ${text}`, "utf-8");
           } catch {
           }
           lastPollTime = Date.now();
-          onProgress?.(`\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0C1\uD0DC: ${status} | ${timeStr}`);
           if (status === "completed") return;
         } catch {
-          onProgress?.(`\u21B3 \uC0C1\uD0DC \uD655\uC778 \uC2E4\uD328 | ${timeStr}`);
           lastPollTime = Date.now();
         }
-      } else {
-        onProgress?.(`\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911... | ${timeStr}`);
       }
+      onProgress?.(`\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911... | ${timeStr}`);
       if (elapsed >= maxWaitMs) {
-        throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uAC04 \uCD08\uACFC (10\uBD84 \uCD08\uACFC)");
+        throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uAC04 \uCD08\uACFC (15\uBD84 \uCD08\uACFC)");
       }
     }
   }

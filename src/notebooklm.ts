@@ -547,7 +547,7 @@ export class NotebookLMClient {
 	 * Studio artifact가 "completed" 상태가 될 때까지 폴링한다.
 	 * - 5분 간격으로 studio status --json 호출
 	 * - 30초마다 사이드바에 경과 시간 표시
-	 * - 최대 10분 대기 후 타임아웃
+	 * - 최대 15분 대기 후 타임아웃
 	 */
 	private async waitForArtifact(
 		path: string,
@@ -556,7 +556,7 @@ export class NotebookLMClient {
 		onProgress?: (message: string) => void
 	): Promise<void> {
 		const pollIntervalMs = 5 * 60 * 1000; // 5분마다 API 폴링
-		const maxWaitMs = 10 * 60 * 1000;     // 최대 10분 대기
+		const maxWaitMs = 15 * 60 * 1000;     // 최대 15분 대기
 		const tickMs = 30 * 1000;              // 30초마다 사이드바 업데이트
 		const startTime = Date.now();
 		let lastPollTime = Date.now();         // 첫 폴링은 5분 후
@@ -582,18 +582,16 @@ export class NotebookLMClient {
 						status = artifacts.find(a => a.id === artifactId)?.status ?? "unknown";
 					} catch { /* JSON 파싱 실패 */ }
 					lastPollTime = Date.now();
-					onProgress?.(`↳ 슬라이드 상태: ${status} | ${timeStr}`);
 					if (status === "completed") return;
 				} catch {
-					onProgress?.(`↳ 상태 확인 실패 | ${timeStr}`);
 					lastPollTime = Date.now();
 				}
-			} else {
-				onProgress?.(`↳ 슬라이드 생성 중... | ${timeStr}`);
 			}
 
+			onProgress?.(`↳ 슬라이드 생성 중... | ${timeStr}`);
+
 			if (elapsed >= maxWaitMs) {
-				throw new Error("슬라이드 생성 시간 초과 (10분 초과)");
+				throw new Error("슬라이드 생성 시간 초과 (15분 초과)");
 			}
 		}
 	}
