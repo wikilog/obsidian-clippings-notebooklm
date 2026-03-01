@@ -255,8 +255,8 @@ export class NotebookLMClient {
 							{ timeout: 120000 }
 						);
 						sourceAdded = true;
-					} catch {
-						onProgress?.("↳ PDF 업로드 실패 → 텍스트로 전환");
+					} catch (pdfErr) {
+						onProgress?.("↳ PDF 업로드 실패: " + execDetail(pdfErr) + "\n→ 텍스트 파일로 전환");
 					} finally {
 						unlink(tmpPdfPath).catch(() => {});
 					}
@@ -265,20 +265,33 @@ export class NotebookLMClient {
 				}
 			}
 
-			// 2c. 마크다운 정제 후 --text 전달 (최종 폴백)
+			// 2c. 정제된 텍스트를 .txt 파일로 저장 후 --file 업로드 (최종 폴백)
 			if (!sourceAdded) {
-				onProgress?.("2c/5  텍스트 소스 추가 중...\n(마크다운 정제 후 업로드)");
+				onProgress?.("2c/5  텍스트 파일 업로드 중...\n(마크다운 정제 후 .txt 저장)");
 				const cleanedText = this.cleanTextForSource(truncated);
 				if (!cleanedText) {
 					throw new Error("소스 추가 실패: 노트 본문이 비어 있습니다.");
 				}
+				const tmpTxtPath = join(tmpdir(), `nlm-src-${Date.now()}.txt`);
 				try {
+					await writeFile(tmpTxtPath, cleanedText, "utf-8");
 					await execFileAsync(
-						path, ["source", "add", notebookId, "--text", cleanedText, "--wait"],
+						path, ["source", "add", notebookId, "--file", tmpTxtPath, "--wait"],
 						{ timeout: 120000 }
 					);
-				} catch (error) {
-					throw new Error("소스 추가 실패: " + execDetail(error));
+				} catch (txtErr) {
+					// .txt --file 실패 시 --text 직접 전달로 최후 시도
+					onProgress?.("↳ txt 파일 업로드 실패: " + execDetail(txtErr) + "\n→ --text 직접 전달 시도");
+					try {
+						await execFileAsync(
+							path, ["source", "add", notebookId, "--text", cleanedText, "--wait"],
+							{ timeout: 120000 }
+						);
+					} catch (error) {
+						throw new Error("소스 추가 실패: " + execDetail(error));
+					}
+				} finally {
+					unlink(tmpTxtPath).catch(() => {});
 				}
 			}
 

@@ -266,8 +266,8 @@ var NotebookLMClient = class {
               { timeout: 12e4 }
             );
             sourceAdded = true;
-          } catch {
-            onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC2E4\uD328 \u2192 \uD14D\uC2A4\uD2B8\uB85C \uC804\uD658");
+          } catch (pdfErr) {
+            onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC2E4\uD328: " + execDetail(pdfErr) + "\n\u2192 \uD14D\uC2A4\uD2B8 \uD30C\uC77C\uB85C \uC804\uD658");
           } finally {
             (0, import_promises.unlink)(tmpPdfPath).catch(() => {
             });
@@ -277,19 +277,33 @@ var NotebookLMClient = class {
         }
       }
       if (!sourceAdded) {
-        onProgress?.("2c/5  \uD14D\uC2A4\uD2B8 \uC18C\uC2A4 \uCD94\uAC00 \uC911...\n(\uB9C8\uD06C\uB2E4\uC6B4 \uC815\uC81C \uD6C4 \uC5C5\uB85C\uB4DC)");
+        onProgress?.("2c/5  \uD14D\uC2A4\uD2B8 \uD30C\uC77C \uC5C5\uB85C\uB4DC \uC911...\n(\uB9C8\uD06C\uB2E4\uC6B4 \uC815\uC81C \uD6C4 .txt \uC800\uC7A5)");
         const cleanedText = this.cleanTextForSource(truncated);
         if (!cleanedText) {
           throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: \uB178\uD2B8 \uBCF8\uBB38\uC774 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.");
         }
+        const tmpTxtPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-src-${Date.now()}.txt`);
         try {
+          await (0, import_promises.writeFile)(tmpTxtPath, cleanedText, "utf-8");
           await execFileAsync(
             path,
-            ["source", "add", notebookId, "--text", cleanedText, "--wait"],
+            ["source", "add", notebookId, "--file", tmpTxtPath, "--wait"],
             { timeout: 12e4 }
           );
-        } catch (error) {
-          throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + execDetail(error));
+        } catch (txtErr) {
+          onProgress?.("\u21B3 txt \uD30C\uC77C \uC5C5\uB85C\uB4DC \uC2E4\uD328: " + execDetail(txtErr) + "\n\u2192 --text \uC9C1\uC811 \uC804\uB2EC \uC2DC\uB3C4");
+          try {
+            await execFileAsync(
+              path,
+              ["source", "add", notebookId, "--text", cleanedText, "--wait"],
+              { timeout: 12e4 }
+            );
+          } catch (error) {
+            throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + execDetail(error));
+          }
+        } finally {
+          (0, import_promises.unlink)(tmpTxtPath).catch(() => {
+          });
         }
       }
       onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uC751\uB2F5 \uB300\uAE30 \u2014 \uCD5C\uB300 2\uBD84 \uC18C\uC694)");
@@ -934,26 +948,63 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
     try {
       const leaf = this.app.workspace.getLeaf(false);
       await leaf.openFile(file);
-      let remote = null;
+      let restoreDialog = null;
       for (const mod of ["@electron/remote", "electron"]) {
         try {
           const m = globalThis.require?.(mod);
-          const r = mod === "electron" ? m?.remote : m;
-          if (r?.dialog) {
-            remote = r;
+          const remote = mod === "electron" ? m?.remote : m;
+          if (remote?.dialog) {
+            const dialog = remote.dialog;
+            const origSync = dialog.showSaveDialogSync;
+            const origAsync = dialog.showSaveDialog;
+            dialog.showSaveDialogSync = () => tmpPdfPath;
+            dialog.showSaveDialog = async () => ({ canceled: false, filePath: tmpPdfPath });
+            restoreDialog = () => {
+              dialog.showSaveDialogSync = origSync;
+              dialog.showSaveDialog = origAsync;
+            };
             break;
           }
         } catch {
         }
       }
-      if (!remote) return null;
-      const dialog = remote.dialog;
-      const origSync = dialog.showSaveDialogSync;
-      const origAsync = dialog.showSaveDialog;
-      dialog.showSaveDialogSync = () => tmpPdfPath;
-      dialog.showSaveDialog = async () => ({ canceled: false, filePath: tmpPdfPath });
+      if (!restoreDialog) {
+        try {
+          const electron = globalThis.require?.("electron");
+          const ipc = electron?.ipcRenderer;
+          if (ipc?.invoke) {
+            const origInvoke = ipc.invoke.bind(ipc);
+            ipc.invoke = async (channel, ...args) => {
+              if (typeof channel === "string") {
+                const argsStr = JSON.stringify(args).toLowerCase();
+                if (argsStr.includes(".pdf") || argsStr.includes("pdf")) {
+                  return { canceled: false, filePath: tmpPdfPath };
+                }
+              }
+              return origInvoke(channel, ...args);
+            };
+            restoreDialog = () => {
+              ipc.invoke = origInvoke;
+            };
+          }
+        } catch {
+        }
+      }
+      if (!restoreDialog) return null;
       try {
         this.app.commands.executeCommandById("workspace:export-pdf");
+        const modalDeadline = Date.now() + 5e3;
+        while (Date.now() < modalDeadline) {
+          await new Promise((r) => setTimeout(r, 100));
+          const btns = Array.from(document.querySelectorAll("button.mod-cta"));
+          const pdfBtn = btns.find(
+            (btn) => (btn.textContent || "").includes("PDF")
+          );
+          if (pdfBtn) {
+            pdfBtn.click();
+            break;
+          }
+        }
         const deadline = Date.now() + 3e4;
         while (Date.now() < deadline) {
           await new Promise((r) => setTimeout(r, 500));
@@ -964,8 +1015,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
           }
         }
       } finally {
-        dialog.showSaveDialogSync = origSync;
-        dialog.showSaveDialog = origAsync;
+        restoreDialog();
       }
     } catch {
     }
