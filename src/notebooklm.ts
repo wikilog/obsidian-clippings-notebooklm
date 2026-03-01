@@ -238,27 +238,35 @@ export class NotebookLMClient {
 				}
 			}
 			if (!sourceAdded) {
-				// --text 직접 전달 대신 임시 파일로 저장 후 --file 로 업로드
-				// (NotebookLM API가 text 인라인 전달을 거부하는 경우 대비)
-				const tmpTextPath = join(tmpdir(), `nlm-src-${Date.now()}.txt`);
-				try {
-					await writeFile(tmpTextPath, truncated, "utf-8");
+				// 2단계: MD → PDF 변환 후 --file 시도
+				const tmpPdfPath = await this.convertMarkdownToPdf(title, truncated);
+				if (tmpPdfPath) {
 					try {
 						await execFileAsync(
-							path, ["source", "add", notebookId, "--file", tmpTextPath, "--wait"],
+							path, ["source", "add", notebookId, "--file", tmpPdfPath, "--wait"],
 							{ timeout: 120000 }
 						);
+						sourceAdded = true;
 					} catch {
-						// --file 실패 시 --text 로 폴백
-						await execFileAsync(
-							path, ["source", "add", notebookId, "--text", truncated, "--wait"],
-							{ timeout: 120000 }
-						);
+						// PDF 업로드 실패 — 다음 단계로
+					} finally {
+						unlink(tmpPdfPath).catch(() => {});
 					}
+				}
+			}
+			if (!sourceAdded) {
+				// 3단계: .md 파일로 --file 시도
+				const tmpMdPath = join(tmpdir(), `nlm-src-${Date.now()}.md`);
+				try {
+					await writeFile(tmpMdPath, truncated, "utf-8");
+					await execFileAsync(
+						path, ["source", "add", notebookId, "--file", tmpMdPath, "--wait"],
+						{ timeout: 120000 }
+					);
 				} catch (error) {
 					throw new Error("소스 추가 실패: " + execDetail(error));
 				} finally {
-					unlink(tmpTextPath).catch(() => {});
+					unlink(tmpMdPath).catch(() => {});
 				}
 			}
 
@@ -349,6 +357,66 @@ export class NotebookLMClient {
 			execFileAsync(path, ["notebook", "delete", notebookId], { timeout: 10000 })
 				.catch(() => {});
 		}
+	}
+
+	/**
+	 * 마크다운 텍스트를 PDF로 변환한다.
+	 * Electron BrowserWindow → pandoc 순으로 시도하며, 모두 실패하면 null을 반환한다.
+	 */
+	private async convertMarkdownToPdf(title: string, text: string): Promise<string | null> {
+		const tmpPdfPath = join(tmpdir(), `nlm-src-${Date.now()}.pdf`);
+		const escaped = text
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;");
+		const html =
+			`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>` +
+			`<style>body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;` +
+			`font-size:11pt;line-height:1.6;padding:50px;white-space:pre-wrap;word-wrap:break-word;}</style>` +
+			`</head><body>${escaped}</body></html>`;
+
+		// 1. Electron BrowserWindow 시도 (Obsidian 렌더러 환경)
+		try {
+			let BrowserWindow: any = null;
+			for (const mod of ["@electron/remote", "electron"]) {
+				try {
+					const m = (globalThis as any).require?.(mod);
+					const remote = mod === "electron" ? m?.remote : m;
+					if (remote?.BrowserWindow) { BrowserWindow = remote.BrowserWindow; break; }
+				} catch { /* 모듈 없음 */ }
+			}
+			if (BrowserWindow) {
+				const win = new BrowserWindow({
+					show: false,
+					webPreferences: { nodeIntegration: false, contextIsolation: true },
+				});
+				await new Promise<void>((resolve, reject) => {
+					win.webContents.once("did-finish-load", resolve);
+					win.webContents.once("did-fail-load", (_: unknown, code: number) => reject(new Error(String(code))));
+					win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
+				});
+				const pdfBuffer: Buffer = await win.webContents.printToPDF({ pageSize: "A4" });
+				win.destroy();
+				await writeFile(tmpPdfPath, pdfBuffer);
+				return tmpPdfPath;
+			}
+		} catch { /* Electron API 없음 — 다음 방법으로 */ }
+
+		// 2. pandoc 시도 (brew install pandoc 등으로 설치된 경우)
+		const tmpMdPath = join(tmpdir(), `nlm-src-${Date.now()}.md`);
+		try {
+			await writeFile(tmpMdPath, `# ${title}\n\n${text}`, "utf-8");
+			for (const pandoc of ["pandoc", "/opt/homebrew/bin/pandoc", "/usr/local/bin/pandoc"]) {
+				try {
+					await execFileAsync(pandoc, [tmpMdPath, "-o", tmpPdfPath], { timeout: 30000 });
+					return tmpPdfPath;
+				} catch { /* 이 경로에 없음 */ }
+			}
+		} finally {
+			unlink(tmpMdPath).catch(() => {});
+		}
+
+		return null; // PDF 변환 불가 — .txt 폴백 사용
 	}
 
 	private extractId(output: string): string {

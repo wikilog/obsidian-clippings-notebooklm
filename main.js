@@ -250,26 +250,35 @@ var NotebookLMClient = class {
         }
       }
       if (!sourceAdded) {
-        const tmpTextPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-src-${Date.now()}.txt`);
-        try {
-          await (0, import_promises.writeFile)(tmpTextPath, truncated, "utf-8");
+        const tmpPdfPath = await this.convertMarkdownToPdf(title, truncated);
+        if (tmpPdfPath) {
           try {
             await execFileAsync(
               path,
-              ["source", "add", notebookId, "--file", tmpTextPath, "--wait"],
+              ["source", "add", notebookId, "--file", tmpPdfPath, "--wait"],
               { timeout: 12e4 }
             );
+            sourceAdded = true;
           } catch {
-            await execFileAsync(
-              path,
-              ["source", "add", notebookId, "--text", truncated, "--wait"],
-              { timeout: 12e4 }
-            );
+          } finally {
+            (0, import_promises.unlink)(tmpPdfPath).catch(() => {
+            });
           }
+        }
+      }
+      if (!sourceAdded) {
+        const tmpMdPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-src-${Date.now()}.md`);
+        try {
+          await (0, import_promises.writeFile)(tmpMdPath, truncated, "utf-8");
+          await execFileAsync(
+            path,
+            ["source", "add", notebookId, "--file", tmpMdPath, "--wait"],
+            { timeout: 12e4 }
+          );
         } catch (error) {
           throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + execDetail(error));
         } finally {
-          (0, import_promises.unlink)(tmpTextPath).catch(() => {
+          (0, import_promises.unlink)(tmpMdPath).catch(() => {
           });
         }
       }
@@ -365,6 +374,62 @@ var NotebookLMClient = class {
       execFileAsync(path, ["notebook", "delete", notebookId], { timeout: 1e4 }).catch(() => {
       });
     }
+  }
+  /**
+   * 마크다운 텍스트를 PDF로 변환한다.
+   * Electron BrowserWindow → pandoc 순으로 시도하며, 모두 실패하면 null을 반환한다.
+   */
+  async convertMarkdownToPdf(title, text) {
+    const tmpPdfPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-src-${Date.now()}.pdf`);
+    const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:11pt;line-height:1.6;padding:50px;white-space:pre-wrap;word-wrap:break-word;}</style></head><body>${escaped}</body></html>`;
+    try {
+      let BrowserWindow = null;
+      for (const mod of ["@electron/remote", "electron"]) {
+        try {
+          const m = globalThis.require?.(mod);
+          const remote = mod === "electron" ? m?.remote : m;
+          if (remote?.BrowserWindow) {
+            BrowserWindow = remote.BrowserWindow;
+            break;
+          }
+        } catch {
+        }
+      }
+      if (BrowserWindow) {
+        const win = new BrowserWindow({
+          show: false,
+          webPreferences: { nodeIntegration: false, contextIsolation: true }
+        });
+        await new Promise((resolve, reject) => {
+          win.webContents.once("did-finish-load", resolve);
+          win.webContents.once("did-fail-load", (_, code) => reject(new Error(String(code))));
+          win.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
+        });
+        const pdfBuffer = await win.webContents.printToPDF({ pageSize: "A4" });
+        win.destroy();
+        await (0, import_promises.writeFile)(tmpPdfPath, pdfBuffer);
+        return tmpPdfPath;
+      }
+    } catch {
+    }
+    const tmpMdPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-src-${Date.now()}.md`);
+    try {
+      await (0, import_promises.writeFile)(tmpMdPath, `# ${title}
+
+${text}`, "utf-8");
+      for (const pandoc of ["pandoc", "/opt/homebrew/bin/pandoc", "/usr/local/bin/pandoc"]) {
+        try {
+          await execFileAsync(pandoc, [tmpMdPath, "-o", tmpPdfPath], { timeout: 3e4 });
+          return tmpPdfPath;
+        } catch {
+        }
+      }
+    } finally {
+      (0, import_promises.unlink)(tmpMdPath).catch(() => {
+      });
+    }
+    return null;
   }
   extractId(output) {
     const match = output.match(/([a-zA-Z0-9_-]{10,})/);
