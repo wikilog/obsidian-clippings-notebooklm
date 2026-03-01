@@ -40,6 +40,21 @@ async function findNlmBinary(configured: string): Promise<string> {
 	}
 
 	const binaryName = configured.split("/").pop() || configured;
+
+	// Try login shell `which` — inherits user's PATH from ~/.zshrc / ~/.bash_profile
+	// This is needed when Obsidian is launched from Finder/Spotlight without shell PATH.
+	try {
+		const shell = process.env.SHELL || "/bin/zsh";
+		const { stdout } = await execFileAsync(
+			shell, ["-l", "-c", `which ${binaryName}`],
+			{ timeout: 8000 }
+		);
+		const found = stdout.trim();
+		if (found) return found;
+	} catch {
+		// Shell lookup failed — fall through to directory scan
+	}
+
 	for (const dir of NLM_SEARCH_DIRS) {
 		const candidate = join(dir, binaryName);
 		try {

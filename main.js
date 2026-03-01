@@ -107,6 +107,17 @@ async function findNlmBinary(configured) {
   } catch {
   }
   const binaryName = configured.split("/").pop() || configured;
+  try {
+    const shell = process.env.SHELL || "/bin/zsh";
+    const { stdout } = await execFileAsync(
+      shell,
+      ["-l", "-c", `which ${binaryName}`],
+      { timeout: 8e3 }
+    );
+    const found = stdout.trim();
+    if (found) return found;
+  } catch {
+  }
   for (const dir of NLM_SEARCH_DIRS) {
     const candidate = (0, import_path.join)(dir, binaryName);
     try {
