@@ -33,7 +33,7 @@ export class ClippingsSidebarView extends ItemView {
 	}
 
 	getIcon(): string {
-		return "presentation";
+		return "notebook";
 	}
 
 	async onOpen(): Promise<void> {

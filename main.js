@@ -520,7 +520,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
     return "Clippings NotebookLM";
   }
   getIcon() {
-    return "presentation";
+    return "notebook";
   }
   async onOpen() {
     this.render();
@@ -678,7 +678,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
       VIEW_TYPE_SIDEBAR,
       (leaf) => new ClippingsSidebarView(leaf, this)
     );
-    this.addRibbonIcon("presentation", "Clippings NotebookLM", () => {
+    this.addRibbonIcon("notebook", "Clippings NotebookLM", () => {
       this.toggleSidebar();
     });
     this.registerMarkdownPostProcessor((el, ctx) => {

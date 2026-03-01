@@ -50,7 +50,7 @@ export default class ClippingsPptPlugin extends Plugin {
 		);
 
 		// 리본 아이콘으로 사이드바 토글
-		this.addRibbonIcon("presentation", "Clippings NotebookLM", () => {
+		this.addRibbonIcon("notebook", "Clippings NotebookLM", () => {
 			this.toggleSidebar();
 		});
 
