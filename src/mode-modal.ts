@@ -1,4 +1,4 @@
-import { App, Modal, Setting } from "obsidian";
+import { App, Modal } from "obsidian";
 import type { ReportMode } from "./prompts";
 import { MODES } from "./prompts";
 
@@ -63,16 +63,6 @@ export class ModeSelectionModal extends Modal {
 			});
 		}
 
-		// 취소 버튼
-		new Setting(contentEl).addButton((btn) =>
-			btn.setButtonText("취소").onClick(() => {
-				if (this.resolve) {
-					this.resolve(null);
-					this.resolve = null;
-				}
-				this.close();
-			})
-		);
 	}
 
 	onClose(): void {

@@ -220,11 +220,13 @@ export class NotebookLMClient {
 				{ timeout: 30000 }
 			);
 			notebookId = this.extractId(stdout);
+			onProgress?.("↳ 노트북 ID: " + notebookId);
 		} catch (error) {
 			throw new Error("노트북 생성 실패: " + execDetail(error));
 		}
 
 		let exportedPdfPath: string | null = null;
+		let uploadSucceeded = false;
 		try {
 			// 2. 소스 추가
 			const truncated = content.length > 30000
@@ -241,6 +243,7 @@ export class NotebookLMClient {
 						{ timeout: 60000 }
 					);
 					sourceAdded = true;
+					uploadSucceeded = true;
 					onProgress?.("↳ URL 업로드 완료 — 인덱싱 대기 중...");
 					await new Promise(r => setTimeout(r, 60000));
 				} catch {
@@ -265,6 +268,7 @@ export class NotebookLMClient {
 							{ timeout: 60000 }
 						);
 						sourceAdded = true;
+						uploadSucceeded = true;
 						onProgress?.("↳ PDF 업로드 완료 — 인덱싱 대기 중...");
 						await new Promise(r => setTimeout(r, 60000));
 					} catch (pdfErr) {
@@ -395,8 +399,8 @@ export class NotebookLMClient {
 			// 노트북 정리 — 실패해도 무시
 			execFileAsync(path, ["notebook", "delete", notebookId], { timeout: 10000 })
 				.catch(() => {});
-			// PDF 정리 — 모든 작업 완료 후 삭제
-			if (exportedPdfPath) unlink(exportedPdfPath).catch(() => {});
+			// PDF 정리 — 업로드 성공 시에만 삭제, 실패 시 exportPDF 폴더에 보존
+			if (exportedPdfPath && uploadSucceeded) unlink(exportedPdfPath).catch(() => {});
 		}
 	}
 
@@ -480,9 +484,16 @@ export class NotebookLMClient {
 	}
 
 	private extractId(output: string): string {
+		// 마지막 줄 우선 (대부분의 CLI는 생성된 ID를 마지막에 출력)
+		const lines = output.trim().split("\n").map(l => l.trim()).filter(Boolean);
+		for (let i = lines.length - 1; i >= 0; i--) {
+			const m = lines[i].match(/^([a-zA-Z0-9_-]{6,})$/);
+			if (m) return m[1];
+		}
+		// fallback: 첫 번째 긴 토큰
 		const match = output.match(/([a-zA-Z0-9_-]{10,})/);
 		if (match) return match[1];
-		return output.trim().split("\n").pop()?.trim() || output.trim();
+		return lines[lines.length - 1] || output.trim();
 	}
 
 	private extractArtifactId(output: string): string {

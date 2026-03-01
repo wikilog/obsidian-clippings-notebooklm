@@ -238,10 +238,12 @@ var NotebookLMClient = class {
         { timeout: 3e4 }
       );
       notebookId = this.extractId(stdout);
+      onProgress?.("\u21B3 \uB178\uD2B8\uBD81 ID: " + notebookId);
     } catch (error) {
       throw new Error("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
     }
     let exportedPdfPath = null;
+    let uploadSucceeded = false;
     try {
       const truncated = content.length > 3e4 ? content.slice(0, 3e4) + "\n...(\uB0B4\uC6A9 \uC0DD\uB7B5)" : content;
       let sourceAdded = false;
@@ -254,6 +256,7 @@ var NotebookLMClient = class {
             { timeout: 6e4 }
           );
           sourceAdded = true;
+          uploadSucceeded = true;
           onProgress?.("\u21B3 URL \uC5C5\uB85C\uB4DC \uC644\uB8CC \u2014 \uC778\uB371\uC2F1 \uB300\uAE30 \uC911...");
           await new Promise((r) => setTimeout(r, 6e4));
         } catch {
@@ -275,6 +278,7 @@ var NotebookLMClient = class {
               { timeout: 6e4 }
             );
             sourceAdded = true;
+            uploadSucceeded = true;
             onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC644\uB8CC \u2014 \uC778\uB371\uC2F1 \uB300\uAE30 \uC911...");
             await new Promise((r) => setTimeout(r, 6e4));
           } catch (pdfErr) {
@@ -409,7 +413,7 @@ var NotebookLMClient = class {
     } finally {
       execFileAsync(path, ["notebook", "delete", notebookId], { timeout: 1e4 }).catch(() => {
       });
-      if (exportedPdfPath) (0, import_promises.unlink)(exportedPdfPath).catch(() => {
+      if (exportedPdfPath && uploadSucceeded) (0, import_promises.unlink)(exportedPdfPath).catch(() => {
       });
     }
   }
@@ -474,9 +478,14 @@ ${text}`, "utf-8");
     return text.replace(/!\[.*?\]\(.*?\)/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\*([^*]+)\*/g, "$1").replace(/`{3}[\s\S]*?`{3}/g, "").replace(/`[^`]+`/g, "").replace(/^\s*\|.*\|\s*$/gm, "").replace(/^\s*[-|:=]{3,}\s*$/gm, "").replace(/^\s*[-*+]\s+/gm, "").replace(/^\s*\d+\.\s+/gm, "").replace(/^>\s*/gm, "").replace(/\n{3,}/g, "\n\n").trim();
   }
   extractId(output) {
+    const lines = output.trim().split("\n").map((l) => l.trim()).filter(Boolean);
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const m = lines[i].match(/^([a-zA-Z0-9_-]{6,})$/);
+      if (m) return m[1];
+    }
     const match = output.match(/([a-zA-Z0-9_-]{10,})/);
     if (match) return match[1];
-    return output.trim().split("\n").pop()?.trim() || output.trim();
+    return lines[lines.length - 1] || output.trim();
   }
   extractArtifactId(output) {
     const uuidMatch = output.match(
@@ -540,15 +549,6 @@ var ModeSelectionModal = class extends import_obsidian2.Modal {
         this.close();
       });
     }
-    new import_obsidian2.Setting(contentEl).addButton(
-      (btn) => btn.setButtonText("\uCDE8\uC18C").onClick(() => {
-        if (this.resolve) {
-          this.resolve(null);
-          this.resolve = null;
-        }
-        this.close();
-      })
-    );
   }
   onClose() {
     if (this.resolve) {
