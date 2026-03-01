@@ -238,10 +238,10 @@ var NotebookLMClient = class {
       throw new Error("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
     }
     try {
-      onProgress?.("2/5  \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC911...\n(NotebookLM AI \uC778\uB371\uC2F1 \u2014 \uCD5C\uB300 1\uBD84 \uC18C\uC694)");
       const truncated = content.length > 3e4 ? content.slice(0, 3e4) + "\n...(\uB0B4\uC6A9 \uC0DD\uB7B5)" : content;
       let sourceAdded = false;
       if (sourceUrl) {
+        onProgress?.("2/5  URL \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC911...\n(NotebookLM AI \uC778\uB371\uC2F1 \u2014 \uCD5C\uB300 1\uBD84 \uC18C\uC694)");
         try {
           await execFileAsync(
             path,
@@ -250,10 +250,13 @@ var NotebookLMClient = class {
           );
           sourceAdded = true;
         } catch {
+          onProgress?.("\u21B3 URL \uD06C\uB864\uB9C1 \uC2E4\uD328 \u2192 PDF \uBCC0\uD658\uC73C\uB85C \uC804\uD658");
         }
+      } else {
+        onProgress?.("2/5  \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC900\uBE44 \uC911...\n(URL \uC5C6\uC74C \u2192 PDF \uBCC0\uD658 \uC2DC\uB3C4)");
       }
       if (!sourceAdded) {
-        onProgress?.("2b/5  PDF \uBCC0\uD658 \uC911...");
+        onProgress?.("2b/5  PDF \uBCC0\uD658 \uC911...\n(Obsidian \uB0B4\uBCF4\uB0B4\uAE30 \u2014 \uCD5C\uB300 30\uCD08 \uC18C\uC694)");
         const tmpPdfPath = pdfProvider ? await pdfProvider() : await this.convertMarkdownToPdf(title, truncated);
         if (tmpPdfPath) {
           try {
@@ -264,17 +267,25 @@ var NotebookLMClient = class {
             );
             sourceAdded = true;
           } catch {
+            onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC2E4\uD328 \u2192 \uD14D\uC2A4\uD2B8\uB85C \uC804\uD658");
           } finally {
             (0, import_promises.unlink)(tmpPdfPath).catch(() => {
             });
           }
+        } else {
+          onProgress?.("\u21B3 PDF \uBCC0\uD658 \uBD88\uAC00 \u2192 \uD14D\uC2A4\uD2B8\uB85C \uC804\uD658");
         }
       }
       if (!sourceAdded) {
+        onProgress?.("2c/5  \uD14D\uC2A4\uD2B8 \uC18C\uC2A4 \uCD94\uAC00 \uC911...\n(\uB9C8\uD06C\uB2E4\uC6B4 \uC815\uC81C \uD6C4 \uC5C5\uB85C\uB4DC)");
+        const cleanedText = this.cleanTextForSource(truncated);
+        if (!cleanedText) {
+          throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: \uB178\uD2B8 \uBCF8\uBB38\uC774 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.");
+        }
         try {
           await execFileAsync(
             path,
-            ["source", "add", notebookId, "--text", truncated, "--wait"],
+            ["source", "add", notebookId, "--text", cleanedText, "--wait"],
             { timeout: 12e4 }
           );
         } catch (error) {
@@ -429,6 +440,10 @@ ${text}`, "utf-8");
       });
     }
     return null;
+  }
+  /** NotebookLM --text 소스 추가를 위해 마크다운 문법을 제거하고 순수 텍스트로 정제 */
+  cleanTextForSource(text) {
+    return text.replace(/!\[.*?\]\(.*?\)/g, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\*([^*]+)\*/g, "$1").replace(/`{3}[\s\S]*?`{3}/g, "").replace(/`[^`]+`/g, "").replace(/^\s*\|.*\|\s*$/gm, "").replace(/^\s*[-|:=]{3,}\s*$/gm, "").replace(/^\s*[-*+]\s+/gm, "").replace(/^\s*\d+\.\s+/gm, "").replace(/^>\s*/gm, "").replace(/\n{3,}/g, "\n\n").trim();
   }
   extractId(output) {
     const match = output.match(/([a-zA-Z0-9_-]{10,})/);
