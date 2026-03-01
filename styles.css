@@ -1,0 +1,135 @@
+/* 버튼 컨테이너 */
+.clippings-ppt-btn-container {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 16px;
+	padding: 12px;
+	background: var(--background-secondary);
+	border-radius: 8px;
+	border: 1px solid var(--background-modifier-border);
+}
+
+/* PPT 생성 버튼 */
+.clippings-ppt-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 16px;
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: opacity 0.2s, transform 0.1s;
+}
+
+.clippings-ppt-btn:hover {
+	opacity: 0.9;
+	transform: translateY(-1px);
+}
+
+.clippings-ppt-btn:active {
+	transform: translateY(0);
+}
+
+.clippings-ppt-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+	transform: none;
+}
+
+.clippings-ppt-btn-loading {
+	pointer-events: none;
+}
+
+.clippings-ppt-btn-icon {
+	font-size: 16px;
+}
+
+/* 로딩 스피너 */
+.clippings-ppt-spinner {
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--text-on-accent);
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: clippings-ppt-spin 0.8s linear infinite;
+}
+
+@keyframes clippings-ppt-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* 모드 선택 모달 */
+.clippings-ppt-modal {
+	max-width: 480px;
+}
+
+.clippings-ppt-modal-desc {
+	color: var(--text-muted);
+	margin-bottom: 16px;
+}
+
+.clippings-ppt-modes {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-bottom: 16px;
+}
+
+.clippings-ppt-mode-card {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 14px 16px;
+	background: var(--background-secondary);
+	border: 2px solid var(--background-modifier-border);
+	border-radius: 8px;
+	cursor: pointer;
+	transition: border-color 0.2s, background 0.2s;
+}
+
+.clippings-ppt-mode-card:hover {
+	border-color: var(--interactive-accent);
+	background: var(--background-secondary-alt);
+}
+
+.clippings-ppt-mode-icon {
+	font-size: 28px;
+	flex-shrink: 0;
+}
+
+.clippings-ppt-mode-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.clippings-ppt-mode-text strong {
+	font-size: 15px;
+}
+
+.clippings-ppt-mode-text small {
+	color: var(--text-muted);
+	font-size: 12px;
+}
+
+/* 설정 탭 */
+.clippings-ppt-login-status {
+	margin-top: 4px;
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.clippings-ppt-status-ok {
+	color: var(--color-green);
+}
+
+.clippings-ppt-status-error {
+	color: var(--color-red);
+}
