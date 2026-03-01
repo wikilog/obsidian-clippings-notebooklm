@@ -29,7 +29,7 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl("h2", { text: "Clippings PPT Generator" });
+		containerEl.createEl("h2", { text: "Clippings NotebookLM" });
 
 		// NotebookLM 연동 섹션
 		containerEl.createEl("h3", { text: "NotebookLM 연동" });
@@ -47,6 +47,15 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 		// 브라우저 로그인 버튼 (비차단 — OAuth 흐름을 별도 프로세스로 실행)
 		loginSetting.addButton((button) =>
 			button.setButtonText("🌐 브라우저로 로그인").onClick(async () => {
+				button.setDisabled(true);
+				await this.plugin.nlmClient.launchLogin();
+				button.setDisabled(false);
+			})
+		);
+
+		// 계정 변경 버튼 (다른 Google 계정으로 재인증)
+		loginSetting.addButton((button) =>
+			button.setButtonText("계정 변경").onClick(async () => {
 				button.setDisabled(true);
 				await this.plugin.nlmClient.launchLogin();
 				button.setDisabled(false);
