@@ -22,7 +22,7 @@ __export(main_exports, {
   default: () => ClippingsPptPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 
 // src/notebooklm.ts
 var import_obsidian = require("obsidian");
@@ -186,7 +186,7 @@ var NotebookLMClient = class {
       return false;
     }
   }
-  async generateContent(title, content, mode, removeBranding = true, onProgress) {
+  async generateContent(title, content, mode, removeBranding = true, sourceUrl, onProgress) {
     const path = await this.getPath();
     const installed = await this.isInstalled();
     if (!installed) {
@@ -216,19 +216,23 @@ var NotebookLMClient = class {
     }
     try {
       onProgress?.("2/5  \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC911...\n(NotebookLM AI \uC778\uB371\uC2F1 \u2014 \uCD5C\uB300 1\uBD84 \uC18C\uC694)");
-      const tmpSourcePath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-source-${Date.now()}.md`);
       try {
-        await (0, import_promises.writeFile)(tmpSourcePath, content, "utf8");
-        await execFileAsync(
-          path,
-          ["source", "add", notebookId, "--file", tmpSourcePath],
-          { timeout: 6e4 }
-        );
+        if (sourceUrl) {
+          await execFileAsync(
+            path,
+            ["source", "add", notebookId, "--url", sourceUrl],
+            { timeout: 6e4 }
+          );
+        } else {
+          const truncated = content.length > 3e4 ? content.slice(0, 3e4) + "\n...(\uB0B4\uC6A9 \uC0DD\uB7B5)" : content;
+          await execFileAsync(
+            path,
+            ["source", "add", notebookId, "--text", truncated],
+            { timeout: 6e4 }
+          );
+        }
       } catch (error) {
         throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + String(error));
-      } finally {
-        (0, import_promises.unlink)(tmpSourcePath).catch(() => {
-        });
       }
       onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uC751\uB2F5 \uB300\uAE30 \u2014 \uCD5C\uB300 2\uBD84 \uC18C\uC694)");
       let summary;
@@ -500,6 +504,148 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
   }
 };
 
+// src/sidebar.ts
+var import_obsidian4 = require("obsidian");
+var VIEW_TYPE_SIDEBAR = "clippings-notebooklm-sidebar";
+var ClippingsSidebarView = class extends import_obsidian4.ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    this.historyListEl = null;
+    this.plugin = plugin;
+  }
+  getViewType() {
+    return VIEW_TYPE_SIDEBAR;
+  }
+  getDisplayText() {
+    return "Clippings NotebookLM";
+  }
+  getIcon() {
+    return "presentation";
+  }
+  async onOpen() {
+    this.render();
+  }
+  async onClose() {
+  }
+  render() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("clippings-sidebar");
+    const header = contentEl.createEl("div", { cls: "clippings-sidebar-header" });
+    header.createEl("span", { cls: "clippings-sidebar-title", text: "\u{1F4D3} NotebookLM" });
+    const btnArea = contentEl.createEl("div", { cls: "clippings-sidebar-btn-area" });
+    const btn = btnArea.createEl("button", {
+      cls: "clippings-sidebar-generate-btn",
+      text: "NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30"
+    });
+    btn.addEventListener("click", async () => {
+      const activeFile = this.plugin.app.workspace.getActiveFile();
+      if (!activeFile) {
+        return;
+      }
+      if (!activeFile.path.startsWith(this.plugin.settings.clippingsFolder + "/")) {
+        this.showHint("Clippings \uD3F4\uB354\uC758 \uB178\uD2B8\uB97C \uBA3C\uC800 \uC5F4\uC5B4\uC8FC\uC138\uC694.");
+        return;
+      }
+      const modal = new ModeSelectionModal(this.plugin.app);
+      const mode = await modal.open();
+      if (mode) {
+        await this.plugin.handleGeneratePpt(activeFile, null, mode);
+      }
+    });
+    const hintEl = contentEl.createEl("div", { cls: "clippings-sidebar-hint" });
+    this.updateActiveFileHint(hintEl);
+    this.registerEvent(
+      this.plugin.app.workspace.on("active-leaf-change", () => {
+        this.updateActiveFileHint(hintEl);
+      })
+    );
+    contentEl.createEl("hr", { cls: "clippings-sidebar-divider" });
+    contentEl.createEl("div", { cls: "clippings-sidebar-section-title", text: "\uC791\uC5C5 \uB0B4\uC5ED" });
+    this.historyListEl = contentEl.createEl("div", { cls: "clippings-sidebar-history" });
+    this.renderHistory();
+  }
+  showHint(msg) {
+    const existing = this.contentEl.querySelector(".clippings-sidebar-toast");
+    if (existing) existing.remove();
+    const toast = this.contentEl.createEl("div", {
+      cls: "clippings-sidebar-toast",
+      text: msg
+    });
+    setTimeout(() => toast.remove(), 3e3);
+  }
+  updateActiveFileHint(el) {
+    const file = this.plugin.app.workspace.getActiveFile();
+    if (!file) {
+      el.setText("\uD65C\uC131 \uB178\uD2B8 \uC5C6\uC74C");
+      el.removeClass("clippings-sidebar-hint-active");
+      return;
+    }
+    const isClippings = file.path.startsWith(this.plugin.settings.clippingsFolder + "/") && !file.path.slice(this.plugin.settings.clippingsFolder.length + 1).includes("/");
+    if (isClippings) {
+      el.setText(`\u2713 ${file.basename}`);
+      el.addClass("clippings-sidebar-hint-active");
+    } else {
+      el.setText("Clippings \uD3F4\uB354 \uB178\uD2B8\uB97C \uC5F4\uC5B4\uC8FC\uC138\uC694");
+      el.removeClass("clippings-sidebar-hint-active");
+    }
+  }
+  renderHistory() {
+    if (!this.historyListEl) return;
+    this.historyListEl.empty();
+    const history = this.plugin.history;
+    if (history.length === 0) {
+      this.historyListEl.createEl("div", {
+        cls: "clippings-sidebar-empty",
+        text: "\uC544\uC9C1 \uC0DD\uC131 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."
+      });
+      return;
+    }
+    for (const item of [...history].reverse()) {
+      const card = this.historyListEl.createEl("div", { cls: "clippings-sidebar-history-card" });
+      const cardTop = card.createEl("div", { cls: "clippings-sidebar-card-top" });
+      const statusIcon = item.status === "success" ? "\u2713" : item.status === "running" ? "\u23F3" : "\u2717";
+      cardTop.createEl("span", {
+        cls: `clippings-sidebar-status clippings-sidebar-status-${item.status}`,
+        text: statusIcon
+      });
+      cardTop.createEl("span", {
+        cls: "clippings-sidebar-card-title",
+        text: item.title
+      });
+      const cardMeta = card.createEl("div", { cls: "clippings-sidebar-card-meta" });
+      cardMeta.createEl("span", { text: `${item.modeIcon} ${item.mode}` });
+      cardMeta.createEl("span", { text: this.formatDate(item.date) });
+      if (item.status === "error" && item.errorMsg) {
+        card.createEl("div", {
+          cls: "clippings-sidebar-card-error",
+          text: item.errorMsg
+        });
+      }
+      if (item.status === "success" && item.pptPath) {
+        const link = card.createEl("div", {
+          cls: "clippings-sidebar-card-link",
+          text: `\u{1F4CE} ${item.pptPath.split("/").pop()}`
+        });
+        link.addEventListener("click", () => {
+          const file = this.plugin.app.vault.getAbstractFileByPath(item.pptPath);
+          if (file instanceof import_obsidian4.TFile) {
+            this.plugin.app.workspace.getLeaf().openFile(file);
+          }
+        });
+      }
+    }
+  }
+  formatDate(date) {
+    const now = /* @__PURE__ */ new Date();
+    const diff = now.getTime() - date.getTime();
+    if (diff < 6e4) return "\uBC29\uAE08 \uC804";
+    if (diff < 36e5) return `${Math.floor(diff / 6e4)}\uBD84 \uC804`;
+    if (diff < 864e5) return `${Math.floor(diff / 36e5)}\uC2DC\uAC04 \uC804`;
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+};
+
 // src/main.ts
 function setButtonContent(btn, icon, text) {
   btn.empty();
@@ -516,16 +662,25 @@ function setButtonLoading(btn, modeLabel) {
   btn.appendChild(spinner);
   btn.appendText(` ${modeLabel} \uC0DD\uC131 \uC911...`);
 }
-var ClippingsPptPlugin = class extends import_obsidian4.Plugin {
+var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
   constructor() {
     super(...arguments);
     this.settings = DEFAULT_SETTINGS;
     this.nlmClient = new NotebookLMClient();
+    this.history = [];
+    this.isRunning = false;
   }
   async onload() {
     await this.loadSettings();
     this.nlmClient = new NotebookLMClient(this.settings.nlmPath);
     this.addSettingTab(new ClippingsPptSettingTab(this.app, this));
+    this.registerView(
+      VIEW_TYPE_SIDEBAR,
+      (leaf) => new ClippingsSidebarView(leaf, this)
+    );
+    this.addRibbonIcon("presentation", "Clippings NotebookLM", () => {
+      this.toggleSidebar();
+    });
     this.registerMarkdownPostProcessor((el, ctx) => {
       const filePath = ctx.sourcePath;
       if (!filePath.startsWith(this.settings.clippingsFolder + "/")) {
@@ -547,7 +702,7 @@ var ClippingsPptPlugin = class extends import_obsidian4.Plugin {
       setButtonContent(btn, "\u{1F4D3}", "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30");
       btn.addEventListener("click", async () => {
         const file = this.app.vault.getAbstractFileByPath(filePath);
-        if (file instanceof import_obsidian4.TFile) {
+        if (file instanceof import_obsidian5.TFile) {
           const modal = new ModeSelectionModal(this.app);
           const mode = await modal.open();
           if (mode) {
@@ -562,7 +717,7 @@ var ClippingsPptPlugin = class extends import_obsidian4.Plugin {
       id: "generate-ppt-notebooklm",
       name: "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30",
       checkCallback: (checking) => {
-        const view = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+        const view = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
         if (!view?.file) return false;
         if (!view.file.path.startsWith(this.settings.clippingsFolder + "/")) {
           return false;
@@ -579,27 +734,62 @@ var ClippingsPptPlugin = class extends import_obsidian4.Plugin {
       }
     });
   }
+  async toggleSidebar() {
+    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR);
+    if (existing.length > 0) {
+      this.app.workspace.detachLeavesOfType(VIEW_TYPE_SIDEBAR);
+      return;
+    }
+    const leaf = this.app.workspace.getRightLeaf(false);
+    if (leaf) {
+      await leaf.setViewState({ type: VIEW_TYPE_SIDEBAR, active: true });
+      this.app.workspace.revealLeaf(leaf);
+    }
+  }
+  refreshSidebar() {
+    this.app.workspace.getLeavesOfType(VIEW_TYPE_SIDEBAR).forEach((leaf) => {
+      if (leaf.view instanceof ClippingsSidebarView) {
+        leaf.view.renderHistory();
+      }
+    });
+  }
   async handleGeneratePpt(file, btn, mode) {
     const modeConfig = MODES[mode];
+    if (this.isRunning) {
+      new import_obsidian5.Notice("\uC774\uBBF8 \uC791\uC5C5\uC774 \uC9C4\uD589 \uC911\uC785\uB2C8\uB2E4. \uC644\uB8CC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.", 4e3);
+      return;
+    }
+    this.isRunning = true;
     if (btn) {
       btn.disabled = true;
       setButtonLoading(btn, modeConfig.label);
       btn.addClass("clippings-ppt-btn-loading");
     }
-    const notice = new import_obsidian4.Notice(
+    const notice = new import_obsidian5.Notice(
       `${modeConfig.icon} ${modeConfig.label} \uC0DD\uC131 \uC911...
 NotebookLM\uC5D0 \uC5F0\uACB0 \uC911...`,
       0
     );
+    const historyItem = {
+      title: file.basename,
+      mode: modeConfig.label,
+      modeIcon: modeConfig.icon,
+      status: "running",
+      date: /* @__PURE__ */ new Date()
+    };
+    this.history.push(historyItem);
+    this.refreshSidebar();
     try {
       const content = await this.app.vault.read(file);
       const { frontmatter, body } = this.parseFrontmatter(content);
       const title = frontmatter.title || file.basename;
+      const source = frontmatter.source || "";
       const result = await this.nlmClient.generateContent(
         title,
         body,
         mode,
         this.settings.removeBranding,
+        source || void 0,
         (step) => {
           notice.setMessage(`${modeConfig.icon} ${modeConfig.label}
 ${step}`);
@@ -612,7 +802,7 @@ ${step}`);
         await this.app.vault.createFolder(outputFolder);
       }
       const existingFile = this.app.vault.getAbstractFileByPath(pptPath);
-      if (existingFile instanceof import_obsidian4.TFile) {
+      if (existingFile instanceof import_obsidian5.TFile) {
         await this.app.vault.modifyBinary(existingFile, result.pptxBuffer);
       } else {
         await this.app.vault.createBinary(pptPath, result.pptxBuffer);
@@ -624,23 +814,44 @@ ${step}`);
         pptPath,
         modeConfig
       );
+      historyItem.status = "success";
+      historyItem.pptPath = pptPath;
+      this.refreshSidebar();
       notice.hide();
-      new import_obsidian4.Notice(
+      new import_obsidian5.Notice(
         `${modeConfig.icon} ${modeConfig.label} \uC0DD\uC131 \uC644\uB8CC!
 ${pptPath}`,
         5e3
       );
     } catch (error) {
+      historyItem.status = "error";
+      historyItem.errorMsg = this.classifyError(String(error));
+      this.refreshSidebar();
       notice.hide();
-      new import_obsidian4.Notice("PPT \uC0DD\uC131 \uC2E4\uD328: " + String(error), 8e3);
-      console.error("Clippings PPT Generator error:", error);
+      new import_obsidian5.Notice(this.classifyError(String(error)), 8e3);
+      console.error("[Clippings NotebookLM] PPT \uC0DD\uC131 \uC624\uB958:", error);
     } finally {
+      this.isRunning = false;
       if (btn) {
         btn.disabled = false;
         setButtonContent(btn, "\u{1F4D3}", "NotebookLM\uC73C\uB85C PPT \uB9CC\uB4E4\uAE30");
         btn.removeClass("clippings-ppt-btn-loading");
       }
     }
+  }
+  classifyError(msg) {
+    if (msg.includes("\uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4") || msg.includes("not found")) {
+      return "\u26A0\uFE0F nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uC124\uC815\uC5D0\uC11C \uACBD\uB85C\uB97C \uD655\uC778\uD558\uC138\uC694.";
+    } else if (msg.includes("\uB85C\uADF8\uC778") || msg.includes("login")) {
+      return "\u{1F510} NotebookLM \uB85C\uADF8\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.\n\uC124\uC815 \u2192 \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778";
+    } else if (msg.includes("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328")) {
+      return "\u{1F4C4} \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC2E4\uD328.\n\uB178\uD2B8\uC758 source URL\uC744 \uD655\uC778\uD558\uAC70\uB098 \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
+    } else if (msg.includes("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328")) {
+      return "\u{1F3A8} \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
+    } else if (msg.includes("\uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328")) {
+      return "\u2B07\uFE0F PPTX \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
+    }
+    return "\u274C PPT \uC0DD\uC131 \uC2E4\uD328.\n\uAC1C\uBC1C\uC790 \uB3C4\uAD6C \uCF58\uC194(Ctrl+Shift+I)\uC5D0\uC11C \uC790\uC138\uD55C \uC624\uB958\uB97C \uD655\uC778\uD558\uC138\uC694.";
   }
   async insertSummaryAndLink(file, originalContent, summary, pptPath, modeConfig) {
     const { raw: rawFrontmatter, body } = this.parseFrontmatter(originalContent);

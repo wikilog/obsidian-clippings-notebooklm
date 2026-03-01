@@ -1,4 +1,159 @@
-/* 편집 모드(Live Preview)에서는 버튼 숨김 — Reading View 전용 */
+/* ───────────────────────────────────────────
+   사이드바 뷰
+─────────────────────────────────────────── */
+.clippings-sidebar {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 12px;
+	gap: 8px;
+	overflow-y: auto;
+}
+
+.clippings-sidebar-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.clippings-sidebar-title {
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.clippings-sidebar-btn-area {
+	margin-top: 4px;
+}
+
+.clippings-sidebar-generate-btn {
+	width: 100%;
+	padding: 10px 12px;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+	border: none;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: opacity 0.2s;
+}
+
+.clippings-sidebar-generate-btn:hover {
+	opacity: 0.88;
+}
+
+.clippings-sidebar-hint {
+	font-size: 11px;
+	color: var(--text-muted);
+	margin-top: 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.clippings-sidebar-hint-active {
+	color: var(--color-green);
+}
+
+.clippings-sidebar-divider {
+	border: none;
+	border-top: 1px solid var(--background-modifier-border);
+	margin: 4px 0;
+}
+
+.clippings-sidebar-section-title {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-bottom: 4px;
+}
+
+.clippings-sidebar-history {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.clippings-sidebar-empty {
+	font-size: 12px;
+	color: var(--text-muted);
+	text-align: center;
+	padding: 20px 0;
+}
+
+.clippings-sidebar-history-card {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	padding: 10px 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.clippings-sidebar-card-top {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.clippings-sidebar-status {
+	font-size: 12px;
+	font-weight: 700;
+	flex-shrink: 0;
+}
+
+.clippings-sidebar-status-success { color: var(--color-green); }
+.clippings-sidebar-status-error   { color: var(--color-red); }
+.clippings-sidebar-status-running { color: var(--color-yellow); }
+
+.clippings-sidebar-card-title {
+	font-size: 13px;
+	font-weight: 500;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.clippings-sidebar-card-meta {
+	display: flex;
+	justify-content: space-between;
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+.clippings-sidebar-card-error {
+	font-size: 11px;
+	color: var(--color-red);
+}
+
+.clippings-sidebar-card-link {
+	font-size: 11px;
+	color: var(--text-accent);
+	cursor: pointer;
+}
+
+.clippings-sidebar-card-link:hover {
+	text-decoration: underline;
+}
+
+.clippings-sidebar-toast {
+	position: absolute;
+	bottom: 12px;
+	left: 12px;
+	right: 12px;
+	background: var(--background-modifier-error);
+	color: var(--text-error);
+	padding: 8px 10px;
+	border-radius: 6px;
+	font-size: 12px;
+	z-index: 10;
+}
+
+/* ───────────────────────────────────────────
+   편집 모드(Live Preview)에서는 버튼 숨김 — Reading View 전용 */
 .markdown-source-view .clippings-ppt-btn-container {
 	display: none;
 }

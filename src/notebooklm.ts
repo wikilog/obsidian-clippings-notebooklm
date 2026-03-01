@@ -3,7 +3,7 @@ import { execFile, spawn } from "child_process";
 import { promisify } from "util";
 import { homedir, tmpdir } from "os";
 import { join } from "path";
-import { access, constants, readFile, unlink, writeFile } from "fs/promises";
+import { access, constants, readFile, unlink } from "fs/promises";
 import type { ReportMode } from "./prompts";
 import { MODES } from "./prompts";
 
@@ -150,6 +150,7 @@ export class NotebookLMClient {
 		content: string,
 		mode: ReportMode,
 		removeBranding: boolean = true,
+		sourceUrl?: string,
 		onProgress?: (message: string) => void
 	): Promise<NotebookLMResult> {
 		const path = await this.getPath();
@@ -191,19 +192,27 @@ export class NotebookLMClient {
 		}
 
 		try {
-			// 2. 소스 추가 (임시 파일 경유 — CLI 인자 길이 제한 우회)
+			// 2. 소스 추가
+			// URL이 있으면 --url 우선 사용 (크기 제한 없음)
+			// 없으면 --text로 전달하되 30,000자로 제한
 			onProgress?.("2/5  소스 업로드 중...\n(NotebookLM AI 인덱싱 — 최대 1분 소요)");
-			const tmpSourcePath = join(tmpdir(), `nlm-source-${Date.now()}.md`);
 			try {
-				await writeFile(tmpSourcePath, content, "utf8");
-				await execFileAsync(
-					path, ["source", "add", notebookId, "--file", tmpSourcePath],
-					{ timeout: 60000 }
-				);
+				if (sourceUrl) {
+					await execFileAsync(
+						path, ["source", "add", notebookId, "--url", sourceUrl],
+						{ timeout: 60000 }
+					);
+				} else {
+					const truncated = content.length > 30000
+						? content.slice(0, 30000) + "\n...(내용 생략)"
+						: content;
+					await execFileAsync(
+						path, ["source", "add", notebookId, "--text", truncated],
+						{ timeout: 60000 }
+					);
+				}
 			} catch (error) {
 				throw new Error("소스 추가 실패: " + String(error));
-			} finally {
-				unlink(tmpSourcePath).catch(() => {});
 			}
 
 			// 3. 요약 요청
