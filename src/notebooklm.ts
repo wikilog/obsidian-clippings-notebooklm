@@ -361,7 +361,8 @@ export class NotebookLMClient {
 					{ timeout: 120000 }
 				);
 				summary = stdout.trim();
-			} catch {
+			} catch (queryErr) {
+				onProgress?.("↳ 요약 실패: " + execDetail(queryErr));
 				summary = "요약을 생성할 수 없습니다.";
 			}
 
@@ -405,22 +406,22 @@ export class NotebookLMClient {
 			await this.waitForArtifact(path, notebookId, artifactId, onProgress);
 			onProgress?.("↳ 슬라이드 생성 완료!");
 
-			// 5. PPTX 다운로드
-			onProgress?.("5/5  PPTX 다운로드 중...");
-			const tmpPath = join(tmpdir(), `nlm-${Date.now()}.pptx`);
+			// 5. PDF 다운로드
+			onProgress?.("5/5  PDF 다운로드 중...");
+			const tmpPath = join(tmpdir(), `nlm-${Date.now()}.pdf`);
 			try {
 				await execFileAsync(
 					path, [
 						"download", "slide-deck", notebookId,
 						"--id", artifactId,
-						"--format", "pptx",
+						"--format", "pdf",
 						"--output", tmpPath,
 						"--no-progress",
 					],
 					{ timeout: 120000 }
 				);
 			} catch (error) {
-				throw new Error("PPTX 다운로드 실패: " + execDetail(error));
+				throw new Error("PDF 다운로드 실패: " + execDetail(error));
 			}
 
 			// 파일 읽기 → ArrayBuffer

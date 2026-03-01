@@ -359,7 +359,8 @@ var NotebookLMClient = class {
           { timeout: 12e4 }
         );
         summary = stdout.trim();
-      } catch {
+      } catch (queryErr) {
+        onProgress?.("\u21B3 \uC694\uC57D \uC2E4\uD328: " + execDetail(queryErr));
         summary = "\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
       }
       onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(5\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 10\uBD84 \uB300\uAE30)");
@@ -405,8 +406,8 @@ var NotebookLMClient = class {
       }
       await this.waitForArtifact(path, notebookId, artifactId, onProgress);
       onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC644\uB8CC!");
-      onProgress?.("5/5  PPTX \uB2E4\uC6B4\uB85C\uB4DC \uC911...");
-      const tmpPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-${Date.now()}.pptx`);
+      onProgress?.("5/5  PDF \uB2E4\uC6B4\uB85C\uB4DC \uC911...");
+      const tmpPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-${Date.now()}.pdf`);
       try {
         await execFileAsync(
           path,
@@ -417,7 +418,7 @@ var NotebookLMClient = class {
             "--id",
             artifactId,
             "--format",
-            "pptx",
+            "pdf",
             "--output",
             tmpPath,
             "--no-progress"
@@ -425,7 +426,7 @@ var NotebookLMClient = class {
           { timeout: 12e4 }
         );
       } catch (error) {
-        throw new Error("PPTX \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328: " + execDetail(error));
+        throw new Error("PDF \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328: " + execDetail(error));
       }
       const fileBuffer = await (0, import_promises.readFile)(tmpPath);
       const pptxBuffer = fileBuffer.buffer.slice(
@@ -1018,7 +1019,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
         () => this.exportFileToPdf(file)
       );
       const outputFolder = `${this.settings.clippingsFolder}/${this.settings.outputSubfolder}`;
-      const pptFileName = `${file.basename}.pptx`;
+      const pptFileName = `${file.basename}.pdf`;
       const pptPath = `${outputFolder}/${pptFileName}`;
       if (!this.app.vault.getAbstractFileByPath(outputFolder)) {
         await this.app.vault.createFolder(outputFolder);
@@ -1049,6 +1050,7 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
       console.error("[Clippings NotebookLM] PPT \uC0DD\uC131 \uC624\uB958:", error);
     } finally {
       this.isRunning = false;
+      this.refreshSidebar();
     }
   }
   /**

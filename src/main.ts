@@ -140,7 +140,7 @@ export default class ClippingsPptPlugin extends Plugin {
 
 			// 출력 경로: Clippings/PDF/
 			const outputFolder = `${this.settings.clippingsFolder}/${this.settings.outputSubfolder}`;
-			const pptFileName = `${file.basename}.pptx`;
+			const pptFileName = `${file.basename}.pdf`;
 			const pptPath = `${outputFolder}/${pptFileName}`;
 
 			// 폴더 생성
@@ -148,7 +148,7 @@ export default class ClippingsPptPlugin extends Plugin {
 				await this.app.vault.createFolder(outputFolder);
 			}
 
-			// PPTX 저장
+			// PDF 저장
 			const existingFile = this.app.vault.getAbstractFileByPath(pptPath);
 			if (existingFile instanceof TFile) {
 				await this.app.vault.modifyBinary(existingFile, result.pptxBuffer);
@@ -177,6 +177,7 @@ export default class ClippingsPptPlugin extends Plugin {
 			console.error("[Clippings NotebookLM] PPT 생성 오류:", error);
 		} finally {
 			this.isRunning = false;
+			this.refreshSidebar();
 		}
 	}
 
