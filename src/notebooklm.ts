@@ -258,6 +258,7 @@ export class NotebookLMClient {
 					: await this.convertMarkdownToPdf(title, truncated);
 				if (tmpPdfPath) {
 					exportedPdfPath = tmpPdfPath;
+					onProgress?.("↳ PDF 변환 성공: " + tmpPdfPath.split("/").pop());
 					try {
 						await execFileAsync(
 							path, ["source", "add", notebookId, "--file", tmpPdfPath],

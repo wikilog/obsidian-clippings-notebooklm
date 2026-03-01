@@ -267,6 +267,7 @@ var NotebookLMClient = class {
         const tmpPdfPath = pdfProvider ? await pdfProvider() : await this.convertMarkdownToPdf(title, truncated);
         if (tmpPdfPath) {
           exportedPdfPath = tmpPdfPath;
+          onProgress?.("\u21B3 PDF \uBCC0\uD658 \uC131\uACF5: " + tmpPdfPath.split("/").pop());
           try {
             await execFileAsync(
               path,
