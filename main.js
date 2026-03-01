@@ -91,6 +91,10 @@ var MODES = {
 var execFileAsync = (0, import_util.promisify)(import_child_process.execFile);
 function execDetail(error) {
   const e = error;
+  if (e.killed === true) {
+    const secs = typeof e.timeout === "number" ? Math.round(e.timeout / 1e3) : "?";
+    return `\uCC98\uB9AC \uC2DC\uAC04 \uCD08\uACFC (${secs}\uCD08 \u2014 nlm \uCC98\uB9AC \uC9C0\uC5F0)`;
+  }
   const stderr = typeof e.stderr === "string" ? e.stderr.trim() : "";
   const stdout = typeof e.stdout === "string" ? e.stdout.trim() : "";
   return stderr || stdout || String(error);
@@ -245,10 +249,12 @@ var NotebookLMClient = class {
         try {
           await execFileAsync(
             path,
-            ["source", "add", notebookId, "--url", sourceUrl, "--wait"],
-            { timeout: 12e4 }
+            ["source", "add", notebookId, "--url", sourceUrl],
+            { timeout: 6e4 }
           );
           sourceAdded = true;
+          onProgress?.("\u21B3 URL \uC5C5\uB85C\uB4DC \uC644\uB8CC \u2014 \uC778\uB371\uC2F1 \uB300\uAE30 \uC911...");
+          await new Promise((r) => setTimeout(r, 6e4));
         } catch {
           onProgress?.("\u21B3 URL \uD06C\uB864\uB9C1 \uC2E4\uD328 \u2192 PDF \uBCC0\uD658\uC73C\uB85C \uC804\uD658");
         }
@@ -262,10 +268,12 @@ var NotebookLMClient = class {
           try {
             await execFileAsync(
               path,
-              ["source", "add", notebookId, "--file", tmpPdfPath, "--wait"],
-              { timeout: 12e4 }
+              ["source", "add", notebookId, "--file", tmpPdfPath],
+              { timeout: 6e4 }
             );
             sourceAdded = true;
+            onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC644\uB8CC \u2014 \uC778\uB371\uC2F1 \uB300\uAE30 \uC911...");
+            await new Promise((r) => setTimeout(r, 6e4));
           } catch (pdfErr) {
             onProgress?.("\u21B3 PDF \uC5C5\uB85C\uB4DC \uC2E4\uD328: " + execDetail(pdfErr) + "\n\u2192 \uD14D\uC2A4\uD2B8 \uD30C\uC77C\uB85C \uC804\uD658");
           } finally {
@@ -287,17 +295,21 @@ var NotebookLMClient = class {
           await (0, import_promises.writeFile)(tmpTxtPath, cleanedText, "utf-8");
           await execFileAsync(
             path,
-            ["source", "add", notebookId, "--file", tmpTxtPath, "--wait"],
-            { timeout: 12e4 }
+            ["source", "add", notebookId, "--file", tmpTxtPath],
+            { timeout: 6e4 }
           );
+          onProgress?.("\u21B3 txt \uC5C5\uB85C\uB4DC \uC644\uB8CC \u2014 \uC778\uB371\uC2F1 \uB300\uAE30 \uC911...");
+          await new Promise((r) => setTimeout(r, 6e4));
         } catch (txtErr) {
           onProgress?.("\u21B3 txt \uD30C\uC77C \uC5C5\uB85C\uB4DC \uC2E4\uD328: " + execDetail(txtErr) + "\n\u2192 --text \uC9C1\uC811 \uC804\uB2EC \uC2DC\uB3C4");
           try {
             await execFileAsync(
               path,
-              ["source", "add", notebookId, "--text", cleanedText, "--wait"],
-              { timeout: 12e4 }
+              ["source", "add", notebookId, "--text", cleanedText],
+              { timeout: 6e4 }
             );
+            onProgress?.("\u21B3 \uD14D\uC2A4\uD2B8 \uCD94\uAC00 \uC644\uB8CC \u2014 \uC778\uB371\uC2F1 \uB300\uAE30 \uC911...");
+            await new Promise((r) => setTimeout(r, 6e4));
           } catch (error) {
             throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + execDetail(error));
           }
@@ -551,6 +563,7 @@ var DEFAULT_SETTINGS = {
   nlmPath: "nlm",
   clippingsFolder: "Clippings",
   outputSubfolder: "PDF",
+  exportPdfSubfolder: "exportPDF",
   removeBranding: true
 };
 var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
@@ -611,6 +624,12 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
     new import_obsidian3.Setting(containerEl).setName("PPT \uC800\uC7A5 \uD558\uC704 \uD3F4\uB354").setDesc("Clippings \uD3F4\uB354 \uC548\uC5D0 PPT\uAC00 \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85").addText(
       (text) => text.setPlaceholder("PDF").setValue(this.plugin.settings.outputSubfolder).onChange(async (value) => {
         this.plugin.settings.outputSubfolder = value || "PDF";
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian3.Setting(containerEl).setName("PDF \uB0B4\uBCF4\uB0B4\uAE30 \uC784\uC2DC \uC800\uC7A5 \uD3F4\uB354").setDesc("NotebookLM \uC5C5\uB85C\uB4DC\uC6A9 PDF\uAC00 \uC784\uC2DC \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85 (\uC5C5\uB85C\uB4DC \uD6C4 \uC790\uB3D9 \uC0AD\uC81C)").addText(
+      (text) => text.setPlaceholder("exportPDF").setValue(this.plugin.settings.exportPdfSubfolder).onChange(async (value) => {
+        this.plugin.settings.exportPdfSubfolder = value || "exportPDF";
         await this.plugin.saveSettings();
       })
     );
@@ -944,7 +963,11 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
    * Electron remote 모듈이 없거나 내보내기 실패 시 null 반환.
    */
   async exportFileToPdf(file) {
-    const tmpPdfPath = (0, import_path2.join)((0, import_os2.tmpdir)(), `nlm-src-${Date.now()}.pdf`);
+    const vaultBasePath = this.app.vault.adapter.basePath ?? (0, import_os2.tmpdir)();
+    const exportDir = (0, import_path2.join)(vaultBasePath, this.settings.clippingsFolder, this.settings.exportPdfSubfolder);
+    await (0, import_promises2.mkdir)(exportDir, { recursive: true }).catch(() => {
+    });
+    const tmpPdfPath = (0, import_path2.join)(exportDir, `nlm-export-${Date.now()}.pdf`);
     try {
       const leaf = this.app.workspace.getLeaf(false);
       await leaf.openFile(file);

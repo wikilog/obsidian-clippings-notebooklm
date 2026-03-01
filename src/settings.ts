@@ -5,6 +5,7 @@ export interface ClippingsPptSettings {
 	nlmPath: string;
 	clippingsFolder: string;
 	outputSubfolder: string;
+	exportPdfSubfolder: string;
 	removeBranding: boolean;
 }
 
@@ -12,6 +13,7 @@ export const DEFAULT_SETTINGS: ClippingsPptSettings = {
 	nlmPath: "nlm",
 	clippingsFolder: "Clippings",
 	outputSubfolder: "PDF",
+	exportPdfSubfolder: "exportPDF",
 	removeBranding: true,
 };
 
@@ -120,6 +122,19 @@ export class ClippingsPptSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.outputSubfolder)
 					.onChange(async (value) => {
 						this.plugin.settings.outputSubfolder = value || "PDF";
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("PDF 내보내기 임시 저장 폴더")
+			.setDesc("NotebookLM 업로드용 PDF가 임시 저장될 하위 폴더명 (업로드 후 자동 삭제)")
+			.addText((text) =>
+				text
+					.setPlaceholder("exportPDF")
+					.setValue(this.plugin.settings.exportPdfSubfolder)
+					.onChange(async (value) => {
+						this.plugin.settings.exportPdfSubfolder = value || "exportPDF";
 						await this.plugin.saveSettings();
 					})
 			);

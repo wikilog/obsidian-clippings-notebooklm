@@ -1,5 +1,5 @@
 import { Plugin, TFile, MarkdownView, addIcon } from "obsidian";
-import { access, constants } from "fs/promises";
+import { access, constants, mkdir } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -185,7 +185,11 @@ export default class ClippingsPptPlugin extends Plugin {
 	 * Electron remote 모듈이 없거나 내보내기 실패 시 null 반환.
 	 */
 	private async exportFileToPdf(file: TFile): Promise<string | null> {
-		const tmpPdfPath = join(tmpdir(), `nlm-src-${Date.now()}.pdf`);
+		const vaultBasePath: string =
+			(this.app.vault.adapter as any).basePath ?? tmpdir();
+		const exportDir = join(vaultBasePath, this.settings.clippingsFolder, this.settings.exportPdfSubfolder);
+		await mkdir(exportDir, { recursive: true }).catch(() => {});
+		const tmpPdfPath = join(exportDir, `nlm-export-${Date.now()}.pdf`);
 		try {
 			const leaf = this.app.workspace.getLeaf(false);
 			await leaf.openFile(file);

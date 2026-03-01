@@ -12,6 +12,11 @@ const execFileAsync = promisify(execFile);
 /** execFile 에러에서 실제 stderr/stdout 메시지를 추출한다. */
 function execDetail(error: unknown): string {
 	const e = error as Record<string, unknown>;
+	// 타임아웃으로 프로세스가 강제 종료된 경우
+	if (e.killed === true) {
+		const secs = typeof e.timeout === "number" ? Math.round(e.timeout / 1000) : "?";
+		return `처리 시간 초과 (${secs}초 — nlm 처리 지연)`;
+	}
 	const stderr = typeof e.stderr === "string" ? e.stderr.trim() : "";
 	const stdout = typeof e.stdout === "string" ? e.stdout.trim() : "";
 	return stderr || stdout || String(error);
@@ -231,10 +236,12 @@ export class NotebookLMClient {
 				onProgress?.("2/5  URL 소스 업로드 중...\n(NotebookLM AI 인덱싱 — 최대 1분 소요)");
 				try {
 					await execFileAsync(
-						path, ["source", "add", notebookId, "--url", sourceUrl, "--wait"],
-						{ timeout: 120000 }
+						path, ["source", "add", notebookId, "--url", sourceUrl],
+						{ timeout: 60000 }
 					);
 					sourceAdded = true;
+					onProgress?.("↳ URL 업로드 완료 — 인덱싱 대기 중...");
+					await new Promise(r => setTimeout(r, 60000));
 				} catch {
 					onProgress?.("↳ URL 크롤링 실패 → PDF 변환으로 전환");
 				}
@@ -251,10 +258,12 @@ export class NotebookLMClient {
 				if (tmpPdfPath) {
 					try {
 						await execFileAsync(
-							path, ["source", "add", notebookId, "--file", tmpPdfPath, "--wait"],
-							{ timeout: 120000 }
+							path, ["source", "add", notebookId, "--file", tmpPdfPath],
+							{ timeout: 60000 }
 						);
 						sourceAdded = true;
+						onProgress?.("↳ PDF 업로드 완료 — 인덱싱 대기 중...");
+						await new Promise(r => setTimeout(r, 60000));
 					} catch (pdfErr) {
 						onProgress?.("↳ PDF 업로드 실패: " + execDetail(pdfErr) + "\n→ 텍스트 파일로 전환");
 					} finally {
@@ -276,17 +285,21 @@ export class NotebookLMClient {
 				try {
 					await writeFile(tmpTxtPath, cleanedText, "utf-8");
 					await execFileAsync(
-						path, ["source", "add", notebookId, "--file", tmpTxtPath, "--wait"],
-						{ timeout: 120000 }
+						path, ["source", "add", notebookId, "--file", tmpTxtPath],
+						{ timeout: 60000 }
 					);
+					onProgress?.("↳ txt 업로드 완료 — 인덱싱 대기 중...");
+					await new Promise(r => setTimeout(r, 60000));
 				} catch (txtErr) {
 					// .txt --file 실패 시 --text 직접 전달로 최후 시도
 					onProgress?.("↳ txt 파일 업로드 실패: " + execDetail(txtErr) + "\n→ --text 직접 전달 시도");
 					try {
 						await execFileAsync(
-							path, ["source", "add", notebookId, "--text", cleanedText, "--wait"],
-							{ timeout: 120000 }
+							path, ["source", "add", notebookId, "--text", cleanedText],
+							{ timeout: 60000 }
 						);
+						onProgress?.("↳ 텍스트 추가 완료 — 인덱싱 대기 중...");
+						await new Promise(r => setTimeout(r, 60000));
 					} catch (error) {
 						throw new Error("소스 추가 실패: " + execDetail(error));
 					}
