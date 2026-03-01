@@ -355,7 +355,7 @@ var NotebookLMClient = class {
       try {
         const { stdout } = await execFileAsync(
           path,
-          ["query", notebookId, modeConfig.summaryPrompt],
+          ["query", "notebook", notebookId, modeConfig.summaryPrompt],
           { timeout: 12e4 }
         );
         summary = stdout.trim();
