@@ -1019,7 +1019,13 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
         source || void 0,
         (step) => {
           historyItem.log = historyItem.log ?? [];
-          historyItem.log.push(step);
+          const TIMER_PREFIX = "\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC911...";
+          const last = historyItem.log[historyItem.log.length - 1];
+          if (step.startsWith(TIMER_PREFIX) && last?.startsWith(TIMER_PREFIX)) {
+            historyItem.log[historyItem.log.length - 1] = step;
+          } else {
+            historyItem.log.push(step);
+          }
           this.refreshSidebar();
         },
         () => this.exportFileToPdf(file)

@@ -132,7 +132,13 @@ export default class ClippingsPptPlugin extends Plugin {
 				source || undefined,
 				(step) => {
 					historyItem.log = historyItem.log ?? [];
-					historyItem.log.push(step);
+					const TIMER_PREFIX = "↳ 슬라이드 생성 중...";
+					const last = historyItem.log[historyItem.log.length - 1];
+					if (step.startsWith(TIMER_PREFIX) && last?.startsWith(TIMER_PREFIX)) {
+						historyItem.log[historyItem.log.length - 1] = step;
+					} else {
+						historyItem.log.push(step);
+					}
 					this.refreshSidebar();
 				},
 				() => this.exportFileToPdf(file)
