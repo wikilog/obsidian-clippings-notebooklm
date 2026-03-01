@@ -166,7 +166,9 @@ export class ClippingsSidebarView extends ItemView {
 			// 진행 로그
 			if (item.log && item.log.length > 0) {
 				const logEl = card.createEl("div", { cls: "clippings-sidebar-card-log" });
-				const entries = item.status === "success"
+				const entries = item.status === "error"
+					? item.log
+					: item.status === "success"
 					? item.log.slice(-1)
 					: item.log.slice(-3);
 				for (const entry of entries) {

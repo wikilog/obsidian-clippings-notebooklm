@@ -638,7 +638,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       cardMeta.createEl("span", { text: this.formatDate(item.date) });
       if (item.log && item.log.length > 0) {
         const logEl = card.createEl("div", { cls: "clippings-sidebar-card-log" });
-        const entries = item.status === "success" ? item.log.slice(-1) : item.log.slice(-3);
+        const entries = item.status === "error" ? item.log : item.status === "success" ? item.log.slice(-1) : item.log.slice(-3);
         for (const entry of entries) {
           logEl.createEl("div", {
             cls: "clippings-sidebar-card-log-entry",
@@ -814,16 +814,16 @@ var ClippingsPptPlugin = class extends import_obsidian5.Plugin {
     }
   }
   classifyError(msg) {
-    if (msg.includes("\uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4") || msg.includes("not found")) {
-      return "\u26A0\uFE0F nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uC124\uC815\uC5D0\uC11C \uACBD\uB85C\uB97C \uD655\uC778\uD558\uC138\uC694.";
-    } else if (msg.includes("\uB85C\uADF8\uC778") || msg.includes("login")) {
-      return "\u{1F510} NotebookLM \uB85C\uADF8\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.\n\uC124\uC815 \u2192 \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778";
-    } else if (msg.includes("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328")) {
+    if (msg.includes("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328")) {
       return "\u{1F4C4} \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC2E4\uD328.\n\uB178\uD2B8\uC758 source URL\uC744 \uD655\uC778\uD558\uAC70\uB098 \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
     } else if (msg.includes("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328")) {
       return "\u{1F3A8} \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
     } else if (msg.includes("\uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328")) {
       return "\u2B07\uFE0F PPTX \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328.\n\uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.";
+    } else if (msg.includes("\uB85C\uADF8\uC778") || msg.includes("login")) {
+      return "\u{1F510} NotebookLM \uB85C\uADF8\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.\n\uC124\uC815 \u2192 \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778";
+    } else if (msg.includes("\uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4") || msg.includes("not found") || msg.includes("ENOENT")) {
+      return "\u26A0\uFE0F nlm CLI\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.\n\uC124\uC815\uC5D0\uC11C \uACBD\uB85C\uB97C \uD655\uC778\uD558\uC138\uC694.";
     }
     return "\u274C PPT \uC0DD\uC131 \uC2E4\uD328.\n\uAC1C\uBC1C\uC790 \uB3C4\uAD6C \uCF58\uC194(Ctrl+Shift+I)\uC5D0\uC11C \uC790\uC138\uD55C \uC624\uB958\uB97C \uD655\uC778\uD558\uC138\uC694.";
   }

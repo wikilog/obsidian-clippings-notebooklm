@@ -134,9 +134,9 @@
 .clippings-sidebar-card-log-entry {
 	font-size: 11px;
 	color: var(--text-muted);
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+	word-break: break-all;
 }
 
 .clippings-sidebar-card-error {
