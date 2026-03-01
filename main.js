@@ -86,6 +86,12 @@ var MODES = {
 
 // src/notebooklm.ts
 var execFileAsync = (0, import_util.promisify)(import_child_process.execFile);
+function execDetail(error) {
+  const e = error;
+  const stderr = typeof e.stderr === "string" ? e.stderr.trim() : "";
+  const stdout = typeof e.stdout === "string" ? e.stdout.trim() : "";
+  return stderr || stdout || String(error);
+}
 var NLM_SEARCH_DIRS = [
   (0, import_path.join)((0, import_os.homedir)(), ".local", "bin"),
   // uv tool install (default)
@@ -226,7 +232,7 @@ var NotebookLMClient = class {
       );
       notebookId = this.extractId(stdout);
     } catch (error) {
-      throw new Error("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: " + String(error));
+      throw new Error("\uB178\uD2B8\uBD81 \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
     }
     try {
       onProgress?.("2/5  \uC18C\uC2A4 \uC5C5\uB85C\uB4DC \uC911...\n(NotebookLM AI \uC778\uB371\uC2F1 \u2014 \uCD5C\uB300 1\uBD84 \uC18C\uC694)");
@@ -251,7 +257,7 @@ var NotebookLMClient = class {
             { timeout: 6e4 }
           );
         } catch (error) {
-          throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + String(error));
+          throw new Error("\uC18C\uC2A4 \uCD94\uAC00 \uC2E4\uD328: " + execDetail(error));
         }
       }
       onProgress?.("3/5  AI \uC694\uC57D \uC0DD\uC131 \uC911...\n(NotebookLM \uC751\uB2F5 \uB300\uAE30 \u2014 \uCD5C\uB300 2\uBD84 \uC18C\uC694)");
@@ -289,7 +295,7 @@ var NotebookLMClient = class {
         );
         artifactId = this.extractArtifactId(stdout);
       } catch (error) {
-        throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328: " + String(error));
+        throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328: " + execDetail(error));
       }
       if (removeBranding && artifactId) {
         try {
@@ -332,7 +338,7 @@ var NotebookLMClient = class {
           { timeout: 12e4 }
         );
       } catch (error) {
-        throw new Error("PPTX \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328: " + String(error));
+        throw new Error("PPTX \uB2E4\uC6B4\uB85C\uB4DC \uC2E4\uD328: " + execDetail(error));
       }
       const fileBuffer = await (0, import_promises.readFile)(tmpPath);
       const pptxBuffer = fileBuffer.buffer.slice(

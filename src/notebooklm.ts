@@ -9,6 +9,14 @@ import { MODES } from "./prompts";
 
 const execFileAsync = promisify(execFile);
 
+/** execFile 에러에서 실제 stderr/stdout 메시지를 추출한다. */
+function execDetail(error: unknown): string {
+	const e = error as Record<string, unknown>;
+	const stderr = typeof e.stderr === "string" ? e.stderr.trim() : "";
+	const stdout = typeof e.stdout === "string" ? e.stdout.trim() : "";
+	return stderr || stdout || String(error);
+}
+
 // Common binary installation paths that GUI apps may not inherit via $PATH.
 // When Obsidian is launched from Finder/Spotlight, it does not inherit the
 // terminal $PATH, so binaries installed via uv/brew/cargo won't be found.
@@ -207,7 +215,7 @@ export class NotebookLMClient {
 			);
 			notebookId = this.extractId(stdout);
 		} catch (error) {
-			throw new Error("노트북 생성 실패: " + String(error));
+			throw new Error("노트북 생성 실패: " + execDetail(error));
 		}
 
 		try {
@@ -236,7 +244,7 @@ export class NotebookLMClient {
 						{ timeout: 60000 }
 					);
 				} catch (error) {
-					throw new Error("소스 추가 실패: " + String(error));
+					throw new Error("소스 추가 실패: " + execDetail(error));
 				}
 			}
 
@@ -270,7 +278,7 @@ export class NotebookLMClient {
 				);
 				artifactId = this.extractArtifactId(stdout);
 			} catch (error) {
-				throw new Error("슬라이드 생성 실패: " + String(error));
+				throw new Error("슬라이드 생성 실패: " + execDetail(error));
 			}
 
 			// 4b. NotebookLM 브랜딩 제거 (선택사항)
@@ -308,7 +316,7 @@ export class NotebookLMClient {
 					{ timeout: 120000 }
 				);
 			} catch (error) {
-				throw new Error("PPTX 다운로드 실패: " + String(error));
+				throw new Error("PPTX 다운로드 실패: " + execDetail(error));
 			}
 
 			// 파일 읽기 → ArrayBuffer
