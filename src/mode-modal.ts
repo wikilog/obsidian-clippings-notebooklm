@@ -2,6 +2,9 @@ import { App, Modal } from "obsidian";
 import type { ReportMode } from "./prompts";
 import { MODES } from "./prompts";
 
+const isKorean = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+const t = (ko: string, en: string): string => isKorean ? ko : en;
+
 export class ModeSelectionModal extends Modal {
 	private resolve: ((mode: ReportMode | null) => void) | null = null;
 
@@ -21,9 +24,9 @@ export class ModeSelectionModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("clippings-ppt-modal");
 
-		contentEl.createEl("h2", { text: "리포트 모드 선택" });
+		contentEl.createEl("h2", { text: t("리포트 모드 선택", "Select Report Mode") });
 		contentEl.createEl("p", {
-			text: "어떤 스타일의 PDF를 생성할까요?",
+			text: t("어떤 스타일의 PDF를 생성할까요?", "Which style of PDF would you like to generate?"),
 			cls: "clippings-ppt-modal-desc",
 		});
 
@@ -62,7 +65,6 @@ export class ModeSelectionModal extends Modal {
 				this.close();
 			});
 		}
-
 	}
 
 	onClose(): void {

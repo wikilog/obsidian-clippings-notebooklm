@@ -5,6 +5,9 @@ import { MODES } from "./prompts";
 
 export const VIEW_TYPE_SIDEBAR = "clippings-notebooklm-sidebar";
 
+const isKorean = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+const t = (ko: string, en: string): string => isKorean ? ko : en;
+
 export interface HistoryItem {
 	title: string;
 	mode: string;
@@ -52,15 +55,13 @@ export class ClippingsSidebarView extends ItemView {
 		contentEl.empty();
 		contentEl.addClass("clippings-sidebar");
 
-		// 헤더
 		const header = contentEl.createEl("div", { cls: "clippings-sidebar-header" });
 		header.createEl("span", { cls: "clippings-sidebar-title", text: "📓 NotebookLM" });
 
-		// 생성 버튼
 		const btnArea = contentEl.createEl("div", { cls: "clippings-sidebar-btn-area" });
 		const btn = btnArea.createEl("button", {
 			cls: "clippings-sidebar-generate-btn",
-			text: "NotebookLM으로 요약하기",
+			text: t("NotebookLM으로 요약하기", "Summarize with NotebookLM"),
 		});
 		this.generateBtn = btn;
 
@@ -71,7 +72,10 @@ export class ClippingsSidebarView extends ItemView {
 				return;
 			}
 			if (!activeFile.path.startsWith(this.plugin.settings.clippingsFolder + "/")) {
-				this.showHint("Clippings 폴더의 노트를 먼저 열어주세요.");
+				this.showHint(t(
+					"Clippings 폴더의 노트를 먼저 열어주세요.",
+					"Please open a note in the Clippings folder."
+				));
 				return;
 			}
 
@@ -82,7 +86,6 @@ export class ClippingsSidebarView extends ItemView {
 			}
 		});
 
-		// 현재 파일 표시
 		const hintEl = contentEl.createEl("div", { cls: "clippings-sidebar-hint" });
 		this.hintEl = hintEl;
 		this.updateActiveFileHint(hintEl);
@@ -93,33 +96,32 @@ export class ClippingsSidebarView extends ItemView {
 			})
 		);
 
-		// 초기 버튼 상태 설정
 		this.refreshBtn();
 
-		// 구분선
 		contentEl.createEl("hr", { cls: "clippings-sidebar-divider" });
 
-		// 작업 내역
-		contentEl.createEl("div", { cls: "clippings-sidebar-section-title", text: "작업 내역" });
+		contentEl.createEl("div", {
+			cls: "clippings-sidebar-section-title",
+			text: t("작업 내역", "History"),
+		});
 
 		this.historyListEl = contentEl.createEl("div", { cls: "clippings-sidebar-history" });
 		this.renderHistory();
 	}
 
-	/** isRunning 상태에 따라 버튼과 힌트를 갱신한다. */
 	private refreshBtn(): void {
 		if (!this.generateBtn) return;
 		if (this.plugin.isRunning) {
 			this.generateBtn.disabled = true;
-			this.generateBtn.textContent = "⏳ 작업 진행 중...";
+			this.generateBtn.textContent = t("⏳ 작업 진행 중...", "⏳ Processing...");
 			this.generateBtn.addClass("clippings-sidebar-generate-btn--running");
 			if (this.hintEl) {
-				this.hintEl.textContent = "완료 후 사용 가능합니다";
+				this.hintEl.textContent = t("완료 후 사용 가능합니다", "Available after completion");
 				this.hintEl.removeClass("clippings-sidebar-hint-active");
 			}
 		} else {
 			this.generateBtn.disabled = false;
-			this.generateBtn.textContent = "NotebookLM으로 요약하기";
+			this.generateBtn.textContent = t("NotebookLM으로 요약하기", "Summarize with NotebookLM");
 			this.generateBtn.removeClass("clippings-sidebar-generate-btn--running");
 			if (this.hintEl) this.updateActiveFileHint(this.hintEl);
 		}
@@ -139,7 +141,7 @@ export class ClippingsSidebarView extends ItemView {
 	private updateActiveFileHint(el: HTMLElement): void {
 		const file = this.plugin.app.workspace.getActiveFile();
 		if (!file) {
-			el.setText("활성 노트 없음");
+			el.setText(t("활성 노트 없음", "No active note"));
 			el.removeClass("clippings-sidebar-hint-active");
 			return;
 		}
@@ -150,7 +152,7 @@ export class ClippingsSidebarView extends ItemView {
 			el.setText(`✓ ${file.basename}`);
 			el.addClass("clippings-sidebar-hint-active");
 		} else {
-			el.setText("Clippings 폴더 노트를 열어주세요");
+			el.setText(t("Clippings 폴더 노트를 열어주세요", "Please open a Clippings note"));
 			el.removeClass("clippings-sidebar-hint-active");
 		}
 	}
@@ -165,7 +167,7 @@ export class ClippingsSidebarView extends ItemView {
 		if (history.length === 0) {
 			this.historyListEl.createEl("div", {
 				cls: "clippings-sidebar-empty",
-				text: "아직 생성 내역이 없습니다.",
+				text: t("아직 생성 내역이 없습니다.", "No history yet."),
 			});
 			return;
 		}
@@ -173,7 +175,6 @@ export class ClippingsSidebarView extends ItemView {
 		for (const item of [...history].reverse()) {
 			const card = this.historyListEl.createEl("div", { cls: "clippings-sidebar-history-card" });
 
-			// 상태 아이콘 + 제목
 			const cardTop = card.createEl("div", { cls: "clippings-sidebar-card-top" });
 			const statusIcon = item.status === "success" ? "✓"
 				: item.status === "running" ? "⏳"
@@ -187,16 +188,13 @@ export class ClippingsSidebarView extends ItemView {
 				text: item.title,
 			});
 
-			// 모드 + 날짜
 			const cardMeta = card.createEl("div", { cls: "clippings-sidebar-card-meta" });
 			cardMeta.createEl("span", { text: `${item.modeIcon} ${item.mode}` });
 			cardMeta.createEl("span", { text: this.formatDate(item.date) });
 
-			// 진행 로그
 			if (item.log && item.log.length > 0) {
 				const logEl = card.createEl("div", { cls: "clippings-sidebar-card-log" });
-				const entries = item.log;
-				for (const entry of entries) {
+				for (const entry of item.log) {
 					logEl.createEl("div", {
 						cls: "clippings-sidebar-card-log-entry",
 						text: entry,
@@ -204,11 +202,10 @@ export class ClippingsSidebarView extends ItemView {
 				}
 			}
 
-			// 복사 버튼 (error일 때 로그 아래에 독립 배치)
 			if (item.status === "error") {
 				const copyBtn = card.createEl("button", {
 					cls: "clippings-sidebar-card-copy-btn",
-					text: "로그 복사",
+					text: t("로그 복사", "Copy Log"),
 				});
 				copyBtn.addEventListener("click", () => {
 					const logText = (item.log ?? []).join("\n");
@@ -216,13 +213,12 @@ export class ClippingsSidebarView extends ItemView {
 						? logText + "\n" + (item.errorMsg ?? "")
 						: item.errorMsg ?? "";
 					navigator.clipboard.writeText(full).then(() => {
-						copyBtn.textContent = "✓ 복사됨";
-						setTimeout(() => { copyBtn.textContent = "로그 복사"; }, 2000);
+						copyBtn.textContent = t("✓ 복사됨", "✓ Copied");
+						setTimeout(() => { copyBtn.textContent = t("로그 복사", "Copy Log"); }, 2000);
 					});
 				});
 			}
 
-			// 오류 메시지 (빨간 텍스트)
 			if (item.status === "error" && item.errorMsg) {
 				card.createEl("div", {
 					cls: "clippings-sidebar-card-error",
@@ -230,7 +226,6 @@ export class ClippingsSidebarView extends ItemView {
 				});
 			}
 
-			// PPT 경로 링크
 			if (item.status === "success" && item.pptPath) {
 				const link = card.createEl("div", {
 					cls: "clippings-sidebar-card-link",
@@ -250,9 +245,13 @@ export class ClippingsSidebarView extends ItemView {
 	private formatDate(date: Date): string {
 		const now = new Date();
 		const diff = now.getTime() - date.getTime();
-		if (diff < 60000) return "방금 전";
-		if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`;
-		if (diff < 86400000) return `${Math.floor(diff / 3600000)}시간 전`;
+		if (diff < 60000) return t("방금 전", "Just now");
+		if (diff < 3600000) return isKorean
+			? `${Math.floor(diff / 60000)}분 전`
+			: `${Math.floor(diff / 60000)}m ago`;
+		if (diff < 86400000) return isKorean
+			? `${Math.floor(diff / 3600000)}시간 전`
+			: `${Math.floor(diff / 3600000)}h ago`;
 		return `${date.getMonth() + 1}/${date.getDate()}`;
 	}
 }

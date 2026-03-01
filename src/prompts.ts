@@ -10,10 +10,13 @@ export interface ModeConfig {
 	focusPrompt: string;
 }
 
+const isKorean = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+const t = (ko: string, en: string): string => isKorean ? ko : en;
+
 export const MODES: Record<ReportMode, ModeConfig> = {
 	detailed: {
-		label: "자세한 리포트",
-		description: "정책 결정권자, 학계 전문가, 업계 베테랑 대상",
+		label: t("자세한 리포트", "Detailed Report"),
+		description: t("정책 결정권자, 학계 전문가, 업계 베테랑 대상", "For policy makers, academics, and industry veterans"),
 		icon: "📋",
 		summaryPrompt: [
 			"이 내용을 정책 결정권자와 15년 이상 경력 전문가를 위해 요약하세요.",
@@ -38,8 +41,8 @@ export const MODES: Record<ReportMode, ModeConfig> = {
 	},
 
 	executive: {
-		label: "핵심 리포트",
-		description: "바쁜 C-레벨 임원, 의사결정자 대상",
+		label: t("핵심 리포트", "Executive Report"),
+		description: t("바쁜 C-레벨 임원, 의사결정자 대상", "For busy C-level executives and decision makers"),
 		icon: "⚡",
 		summaryPrompt: [
 			"이 내용을 C-레벨 임원을 위해 핵심만 3줄로 요약하세요.",
@@ -52,7 +55,7 @@ export const MODES: Record<ReportMode, ModeConfig> = {
 		slidesFormat: "presenter_slides",
 		slidesLength: "short",
 		focusPrompt:
-			"하루 수십 개 보고를 받는 C레벨 임원 대상. " + 
+			"하루 수십 개 보고를 받는 C레벨 임원 대상. " +
 			"결론을 슬라이드 제목으로 바로 제시. " +
 			"슬라이드 1장을 5초 안에 파악 가능해야 함. " +
 			"수치·사례 반드시 1개 이상 포함. " +
@@ -65,8 +68,8 @@ export const MODES: Record<ReportMode, ModeConfig> = {
 	},
 
 	easy: {
-		label: "쉬운 리포트",
-		description: "다양한 배경의 혼합 청중, 비전문가 포함",
+		label: t("쉬운 리포트", "Easy Report"),
+		description: t("다양한 배경의 혼합 청중, 비전문가 포함", "For mixed audiences including non-experts"),
 		icon: "🌱",
 		summaryPrompt: [
 			"이 내용을 비전문가도 이해할 수 있도록 쉽게 요약하세요.",
@@ -79,7 +82,7 @@ export const MODES: Record<ReportMode, ModeConfig> = {
 		slidesFormat: "detailed_deck",
 		slidesLength: "short",
 		focusPrompt:
-			"비전문가가 포함된 혼합 청중 대상. " +      
+			"비전문가가 포함된 혼합 청중 대상. " +
 			"표지는 누구나 공감할 수 있는 질문형 제목 — 타겟 독자·대상 언급 절대 금지. " +
 			"도입은 일상적 비유·스토리로 시작. " +
 			"전문 용어 최소화, 사용 시 즉시 1~2문장으로 풀어 설명. " +

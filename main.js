@@ -36,10 +36,12 @@ var import_path = require("path");
 var import_promises = require("fs/promises");
 
 // src/prompts.ts
+var isKorean = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+var t = (ko, en) => isKorean ? ko : en;
 var MODES = {
   detailed: {
-    label: "\uC790\uC138\uD55C \uB9AC\uD3EC\uD2B8",
-    description: "\uC815\uCC45 \uACB0\uC815\uAD8C\uC790, \uD559\uACC4 \uC804\uBB38\uAC00, \uC5C5\uACC4 \uBCA0\uD14C\uB791 \uB300\uC0C1",
+    label: t("\uC790\uC138\uD55C \uB9AC\uD3EC\uD2B8", "Detailed Report"),
+    description: t("\uC815\uCC45 \uACB0\uC815\uAD8C\uC790, \uD559\uACC4 \uC804\uBB38\uAC00, \uC5C5\uACC4 \uBCA0\uD14C\uB791 \uB300\uC0C1", "For policy makers, academics, and industry veterans"),
     icon: "\u{1F4CB}",
     summaryPrompt: [
       "\uC774 \uB0B4\uC6A9\uC744 \uC815\uCC45 \uACB0\uC815\uAD8C\uC790\uC640 15\uB144 \uC774\uC0C1 \uACBD\uB825 \uC804\uBB38\uAC00\uB97C \uC704\uD574 \uC694\uC57D\uD558\uC138\uC694.",
@@ -54,8 +56,8 @@ var MODES = {
     focusPrompt: "\uC804\uBB38\uAC00(15\uB144 \uC774\uC0C1 \uACBD\uB825) \uB300\uC0C1 \uC2EC\uCE35 \uBD84\uC11D \uB9AC\uD3EC\uD2B8. \uC804\uBB38 \uC6A9\uC5B4 \uC790\uC720 \uC0AC\uC6A9, \uAC01 \uC139\uC158 \uC2DC\uC791\uC5D0 '\uC65C \uC911\uC694\uD55C\uAC00' \uB9E5\uB77D \uC2AC\uB77C\uC774\uB4DC 1\uC7A5 \uD3EC\uD568. \uC778\uACFC\uAD00\uACC4 \uBA85\uD655\uD788 \uC11C\uC220, \uC218\uB3D9\uD0DC\xB7\uBAA8\uD638\uD55C \uD45C\uD604 \uAE08\uC9C0. \uB370\uC774\uD130\xB7\uC0AC\uB840\xB7\uC778\uC6A9\uC73C\uB85C \uC8FC\uC7A5 \uB4B7\uBC1B\uCE68. \uD45C\uC9C0\uB294 \uB0B4\uC6A9\uC758 \uD575\uC2EC \uC8FC\uC7A5\uC744 \uB2F4\uC740 \uC81C\uBAA9\uC73C\uB85C \uAD6C\uC131 (\uD0C0\uAC9F \uB3C5\uC790\xB7\uB300\uC0C1 \uC5B8\uAE09 \uC808\uB300 \uAE08\uC9C0). \uB9C8\uBB34\uB9AC \uC9C1\uC804 \uC2AC\uB77C\uC774\uB4DC\uC5D0 \uB9AC\uB354\uAC00 \uB0B4\uC77C \uC2E4\uD589\uD560 Action Item 3\uAC00\uC9C0. \uB9C8\uC9C0\uB9C9 \uC2AC\uB77C\uC774\uB4DC\uB294 \uBC18\uB4DC\uC2DC '\uAC10\uC0AC\uD569\uB2C8\uB2E4' \uBB38\uAD6C \uD3EC\uD568. \uBAA8\uB4E0 \uC2AC\uB77C\uC774\uB4DC\uC5D0 NotebookLM \uB85C\uACE0\xB7\uC6CC\uD130\uB9C8\uD06C\xB7\uBE0C\uB79C\uB529 \uC694\uC18C \uD3EC\uD568 \uAE08\uC9C0. \uAD8C\uC704 \uC788\uACE0 \uBD84\uC11D\uC801\uC778 \uC5B4\uC870. 8~12\uC2AC\uB77C\uC774\uB4DC \uAD6C\uC131."
   },
   executive: {
-    label: "\uD575\uC2EC \uB9AC\uD3EC\uD2B8",
-    description: "\uBC14\uC05C C-\uB808\uBCA8 \uC784\uC6D0, \uC758\uC0AC\uACB0\uC815\uC790 \uB300\uC0C1",
+    label: t("\uD575\uC2EC \uB9AC\uD3EC\uD2B8", "Executive Report"),
+    description: t("\uBC14\uC05C C-\uB808\uBCA8 \uC784\uC6D0, \uC758\uC0AC\uACB0\uC815\uC790 \uB300\uC0C1", "For busy C-level executives and decision makers"),
     icon: "\u26A1",
     summaryPrompt: [
       "\uC774 \uB0B4\uC6A9\uC744 C-\uB808\uBCA8 \uC784\uC6D0\uC744 \uC704\uD574 \uD575\uC2EC\uB9CC 3\uC904\uB85C \uC694\uC57D\uD558\uC138\uC694.",
@@ -70,8 +72,8 @@ var MODES = {
     focusPrompt: "\uD558\uB8E8 \uC218\uC2ED \uAC1C \uBCF4\uACE0\uB97C \uBC1B\uB294 C\uB808\uBCA8 \uC784\uC6D0 \uB300\uC0C1. \uACB0\uB860\uC744 \uC2AC\uB77C\uC774\uB4DC \uC81C\uBAA9\uC73C\uB85C \uBC14\uB85C \uC81C\uC2DC. \uC2AC\uB77C\uC774\uB4DC 1\uC7A5\uC744 5\uCD08 \uC548\uC5D0 \uD30C\uC545 \uAC00\uB2A5\uD574\uC57C \uD568. \uC218\uCE58\xB7\uC0AC\uB840 \uBC18\uB4DC\uC2DC 1\uAC1C \uC774\uC0C1 \uD3EC\uD568. \uBD88\uD544\uC694\uD55C \uC218\uC2DD\uC5B4\xB7\uAE34 \uBB38\uB2E8 \uAE08\uC9C0. \uD45C\uC9C0\uB294 \uACB0\uB860 \uADF8\uB300\uB85C \uC81C\uBAA9(\uC608: '\uD575\uC2EC\uC740 \uADDC\uCE59\uC774\uB2E4') \u2014 \uD0C0\uAC9F \uB3C5\uC790\xB7\uB300\uC0C1 \uC5B8\uAE09 \uC808\uB300 \uAE08\uC9C0. \uB9C8\uBB34\uB9AC \uC9C1\uC804 \uC2AC\uB77C\uC774\uB4DC\uB294 Yes/No \uC758\uC0AC\uACB0\uC815 \uC9C8\uBB38 1\uAC1C. \uB9C8\uC9C0\uB9C9 \uC2AC\uB77C\uC774\uB4DC\uB294 \uBC18\uB4DC\uC2DC '\uAC10\uC0AC\uD569\uB2C8\uB2E4' \uBB38\uAD6C \uD3EC\uD568. \uBAA8\uB4E0 \uC2AC\uB77C\uC774\uB4DC\uC5D0 NotebookLM \uB85C\uACE0\xB7\uC6CC\uD130\uB9C8\uD06C\xB7\uBE0C\uB79C\uB529 \uC694\uC18C \uD3EC\uD568 \uAE08\uC9C0. \uB2E8\uB3C4\uC9C1\uC785\uC801 \uC5B4\uC870. 5~8\uC2AC\uB77C\uC774\uB4DC \uAD6C\uC131."
   },
   easy: {
-    label: "\uC26C\uC6B4 \uB9AC\uD3EC\uD2B8",
-    description: "\uB2E4\uC591\uD55C \uBC30\uACBD\uC758 \uD63C\uD569 \uCCAD\uC911, \uBE44\uC804\uBB38\uAC00 \uD3EC\uD568",
+    label: t("\uC26C\uC6B4 \uB9AC\uD3EC\uD2B8", "Easy Report"),
+    description: t("\uB2E4\uC591\uD55C \uBC30\uACBD\uC758 \uD63C\uD569 \uCCAD\uC911, \uBE44\uC804\uBB38\uAC00 \uD3EC\uD568", "For mixed audiences including non-experts"),
     icon: "\u{1F331}",
     summaryPrompt: [
       "\uC774 \uB0B4\uC6A9\uC744 \uBE44\uC804\uBB38\uAC00\uB3C4 \uC774\uD574\uD560 \uC218 \uC788\uB3C4\uB85D \uC27D\uAC8C \uC694\uC57D\uD558\uC138\uC694.",
@@ -604,6 +606,8 @@ ${text}`, "utf-8");
 
 // src/mode-modal.ts
 var import_obsidian2 = require("obsidian");
+var isKorean2 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+var t2 = (ko, en) => isKorean2 ? ko : en;
 var ModeSelectionModal = class extends import_obsidian2.Modal {
   constructor(app) {
     super(app);
@@ -619,9 +623,9 @@ var ModeSelectionModal = class extends import_obsidian2.Modal {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("clippings-ppt-modal");
-    contentEl.createEl("h2", { text: "\uB9AC\uD3EC\uD2B8 \uBAA8\uB4DC \uC120\uD0DD" });
+    contentEl.createEl("h2", { text: t2("\uB9AC\uD3EC\uD2B8 \uBAA8\uB4DC \uC120\uD0DD", "Select Report Mode") });
     contentEl.createEl("p", {
-      text: "\uC5B4\uB5A4 \uC2A4\uD0C0\uC77C\uC758 PDF\uB97C \uC0DD\uC131\uD560\uAE4C\uC694?",
+      text: t2("\uC5B4\uB5A4 \uC2A4\uD0C0\uC77C\uC758 PDF\uB97C \uC0DD\uC131\uD560\uAE4C\uC694?", "Which style of PDF would you like to generate?"),
       cls: "clippings-ppt-modal-desc"
     });
     const modesContainer = contentEl.createDiv({
@@ -671,8 +675,8 @@ var DEFAULT_SETTINGS = {
   outputSubfolder: "PDF",
   exportPdfSubfolder: "exportPDF"
 };
-var isKorean = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
-var t = (ko, en) => isKorean ? ko : en;
+var isKorean3 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+var t3 = (ko, en) => isKorean3 ? ko : en;
 var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
@@ -682,8 +686,8 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: `Clippings NotebookLM v${this.plugin.manifest.version}` });
-    containerEl.createEl("h3", { text: t("NotebookLM \uC5F0\uB3D9", "NotebookLM Integration") });
-    const loginSetting = new import_obsidian3.Setting(containerEl).setName(t("NotebookLM \uB85C\uADF8\uC778", "NotebookLM Login")).setDesc(t(
+    containerEl.createEl("h3", { text: t3("NotebookLM \uC5F0\uB3D9", "NotebookLM Integration") });
+    const loginSetting = new import_obsidian3.Setting(containerEl).setName(t3("NotebookLM \uB85C\uADF8\uC778", "NotebookLM Login")).setDesc(t3(
       "Google \uACC4\uC815\uC73C\uB85C NotebookLM\uC5D0 \uB85C\uADF8\uC778\uD569\uB2C8\uB2E4.",
       "Sign in to NotebookLM with your Google account."
     ));
@@ -692,29 +696,29 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
     });
     this.checkLoginStatus(statusEl);
     loginSetting.addButton(
-      (button) => button.setButtonText(t("\u{1F310} \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778", "\u{1F310} Login via Browser")).onClick(async () => {
+      (button) => button.setButtonText(t3("\u{1F310} \uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778", "\u{1F310} Login via Browser")).onClick(async () => {
         button.setDisabled(true);
         await this.plugin.nlmClient.launchLogin();
         button.setDisabled(false);
       })
     );
     loginSetting.addButton(
-      (button) => button.setButtonText(t("\uACC4\uC815 \uBCC0\uACBD", "Switch Account")).onClick(async () => {
+      (button) => button.setButtonText(t3("\uACC4\uC815 \uBCC0\uACBD", "Switch Account")).onClick(async () => {
         button.setDisabled(true);
         await this.plugin.nlmClient.launchAccountSwitch();
         button.setDisabled(false);
       })
     );
     loginSetting.addButton(
-      (button) => button.setButtonText(t("\uC0C1\uD0DC \uD655\uC778", "Check Status")).onClick(async () => {
+      (button) => button.setButtonText(t3("\uC0C1\uD0DC \uD655\uC778", "Check Status")).onClick(async () => {
         button.setDisabled(true);
-        button.setButtonText(t("\uD655\uC778 \uC911...", "Checking..."));
+        button.setButtonText(t3("\uD655\uC778 \uC911...", "Checking..."));
         await this.checkLoginStatus(statusEl);
         button.setDisabled(false);
-        button.setButtonText(t("\uC0C1\uD0DC \uD655\uC778", "Check Status"));
+        button.setButtonText(t3("\uC0C1\uD0DC \uD655\uC778", "Check Status"));
       })
     );
-    new import_obsidian3.Setting(containerEl).setName(t("nlm CLI \uACBD\uB85C", "nlm CLI Path")).setDesc(t(
+    new import_obsidian3.Setting(containerEl).setName(t3("nlm CLI \uACBD\uB85C", "nlm CLI Path")).setDesc(t3(
       "notebooklm-mcp-cli\uC758 nlm \uC2E4\uD589 \uD30C\uC77C \uACBD\uB85C. \uAE30\uBCF8\uAC12 'nlm'\uC73C\uB85C \uCC3E\uC9C0 \uBABB\uD560 \uACBD\uC6B0 \uC808\uB300 \uACBD\uB85C\uB97C \uC785\uB825\uD558\uC138\uC694. \uC608: /Users/yourname/.local/bin/nlm",
       "Path to the nlm executable. If 'nlm' is not found in PATH, enter the full path. e.g. /Users/yourname/.local/bin/nlm"
     )).addText(
@@ -724,14 +728,14 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    containerEl.createEl("h3", { text: t("\uD3F4\uB354 \uC124\uC815", "Folder Settings") });
-    new import_obsidian3.Setting(containerEl).setName(t("Clippings \uD3F4\uB354", "Clippings Folder")).setDesc(t("\uC6F9 \uD074\uB9AC\uD551\uC774 \uC800\uC7A5\uB418\uB294 \uD3F4\uB354 \uACBD\uB85C", "Folder path where web clips are stored")).addText(
+    containerEl.createEl("h3", { text: t3("\uD3F4\uB354 \uC124\uC815", "Folder Settings") });
+    new import_obsidian3.Setting(containerEl).setName(t3("Clippings \uD3F4\uB354", "Clippings Folder")).setDesc(t3("\uC6F9 \uD074\uB9AC\uD551\uC774 \uC800\uC7A5\uB418\uB294 \uD3F4\uB354 \uACBD\uB85C", "Folder path where web clips are stored")).addText(
       (text) => text.setPlaceholder("Clippings").setValue(this.plugin.settings.clippingsFolder).onChange(async (value) => {
         this.plugin.settings.clippingsFolder = value || "Clippings";
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian3.Setting(containerEl).setName(t("PDF \uC800\uC7A5 \uD558\uC704 \uD3F4\uB354", "PDF Output Subfolder")).setDesc(t(
+    new import_obsidian3.Setting(containerEl).setName(t3("PDF \uC800\uC7A5 \uD558\uC704 \uD3F4\uB354", "PDF Output Subfolder")).setDesc(t3(
       "Clippings \uD3F4\uB354 \uC548\uC5D0 PDF\uAC00 \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85",
       "Subfolder inside Clippings where generated PDFs are saved"
     )).addText(
@@ -740,7 +744,7 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian3.Setting(containerEl).setName(t("PDF \uB0B4\uBCF4\uB0B4\uAE30 \uC784\uC2DC \uC800\uC7A5 \uD3F4\uB354", "PDF Export Temp Folder")).setDesc(t(
+    new import_obsidian3.Setting(containerEl).setName(t3("PDF \uB0B4\uBCF4\uB0B4\uAE30 \uC784\uC2DC \uC800\uC7A5 \uD3F4\uB354", "PDF Export Temp Folder")).setDesc(t3(
       "NotebookLM \uC5C5\uB85C\uB4DC\uC6A9 PDF\uAC00 \uC784\uC2DC \uC800\uC7A5\uB420 \uD558\uC704 \uD3F4\uB354\uBA85 (\uC5C5\uB85C\uB4DC \uD6C4 \uC790\uB3D9 \uC0AD\uC81C)",
       "Subfolder for temporary PDF storage before upload (auto-deleted after upload)"
     )).addText(
@@ -752,11 +756,11 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
   }
   async checkLoginStatus(statusEl) {
     statusEl.empty();
-    statusEl.setText(t("\uD655\uC778 \uC911...", "Checking..."));
+    statusEl.setText(t3("\uD655\uC778 \uC911...", "Checking..."));
     statusEl.removeClass("clippings-ppt-status-ok", "clippings-ppt-status-error");
     const installed = await this.plugin.nlmClient.isInstalled();
     if (!installed) {
-      statusEl.setText(t(
+      statusEl.setText(t3(
         "\u26A0 nlm CLI \uBBF8\uC124\uCE58 \u2014 \uD130\uBBF8\uB110\uC5D0\uC11C: uv tool install notebooklm-mcp-cli",
         "\u26A0 nlm CLI not installed \u2014 run: uv tool install notebooklm-mcp-cli"
       ));
@@ -765,10 +769,10 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
     }
     const loggedIn = await this.plugin.nlmClient.isLoggedIn();
     if (loggedIn) {
-      statusEl.setText(t("\u2713 \uB85C\uADF8\uC778\uB428", "\u2713 Logged in"));
+      statusEl.setText(t3("\u2713 \uB85C\uADF8\uC778\uB428", "\u2713 Logged in"));
       statusEl.addClass("clippings-ppt-status-ok");
     } else {
-      statusEl.setText(t(
+      statusEl.setText(t3(
         "\u2717 \uB85C\uADF8\uC778 \uD544\uC694 \u2014 '\uBE0C\uB77C\uC6B0\uC800\uB85C \uB85C\uADF8\uC778' \uBC84\uD2BC\uC744 \uD074\uB9AD\uD558\uC138\uC694",
         "\u2717 Not logged in \u2014 click 'Login via Browser'"
       ));
@@ -780,6 +784,8 @@ var ClippingsPptSettingTab = class extends import_obsidian3.PluginSettingTab {
 // src/sidebar.ts
 var import_obsidian4 = require("obsidian");
 var VIEW_TYPE_SIDEBAR = "clippings-notebooklm-sidebar";
+var isKorean4 = typeof navigator !== "undefined" && navigator.language?.startsWith("ko");
+var t4 = (ko, en) => isKorean4 ? ko : en;
 var ClippingsSidebarView = class extends import_obsidian4.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
@@ -811,7 +817,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
     const btnArea = contentEl.createEl("div", { cls: "clippings-sidebar-btn-area" });
     const btn = btnArea.createEl("button", {
       cls: "clippings-sidebar-generate-btn",
-      text: "NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30"
+      text: t4("NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30", "Summarize with NotebookLM")
     });
     this.generateBtn = btn;
     btn.addEventListener("click", async () => {
@@ -821,7 +827,10 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
         return;
       }
       if (!activeFile.path.startsWith(this.plugin.settings.clippingsFolder + "/")) {
-        this.showHint("Clippings \uD3F4\uB354\uC758 \uB178\uD2B8\uB97C \uBA3C\uC800 \uC5F4\uC5B4\uC8FC\uC138\uC694.");
+        this.showHint(t4(
+          "Clippings \uD3F4\uB354\uC758 \uB178\uD2B8\uB97C \uBA3C\uC800 \uC5F4\uC5B4\uC8FC\uC138\uC694.",
+          "Please open a note in the Clippings folder."
+        ));
         return;
       }
       const modal = new ModeSelectionModal(this.plugin.app);
@@ -840,24 +849,26 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
     );
     this.refreshBtn();
     contentEl.createEl("hr", { cls: "clippings-sidebar-divider" });
-    contentEl.createEl("div", { cls: "clippings-sidebar-section-title", text: "\uC791\uC5C5 \uB0B4\uC5ED" });
+    contentEl.createEl("div", {
+      cls: "clippings-sidebar-section-title",
+      text: t4("\uC791\uC5C5 \uB0B4\uC5ED", "History")
+    });
     this.historyListEl = contentEl.createEl("div", { cls: "clippings-sidebar-history" });
     this.renderHistory();
   }
-  /** isRunning 상태에 따라 버튼과 힌트를 갱신한다. */
   refreshBtn() {
     if (!this.generateBtn) return;
     if (this.plugin.isRunning) {
       this.generateBtn.disabled = true;
-      this.generateBtn.textContent = "\u23F3 \uC791\uC5C5 \uC9C4\uD589 \uC911...";
+      this.generateBtn.textContent = t4("\u23F3 \uC791\uC5C5 \uC9C4\uD589 \uC911...", "\u23F3 Processing...");
       this.generateBtn.addClass("clippings-sidebar-generate-btn--running");
       if (this.hintEl) {
-        this.hintEl.textContent = "\uC644\uB8CC \uD6C4 \uC0AC\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4";
+        this.hintEl.textContent = t4("\uC644\uB8CC \uD6C4 \uC0AC\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4", "Available after completion");
         this.hintEl.removeClass("clippings-sidebar-hint-active");
       }
     } else {
       this.generateBtn.disabled = false;
-      this.generateBtn.textContent = "NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30";
+      this.generateBtn.textContent = t4("NotebookLM\uC73C\uB85C \uC694\uC57D\uD558\uAE30", "Summarize with NotebookLM");
       this.generateBtn.removeClass("clippings-sidebar-generate-btn--running");
       if (this.hintEl) this.updateActiveFileHint(this.hintEl);
     }
@@ -874,7 +885,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
   updateActiveFileHint(el) {
     const file = this.plugin.app.workspace.getActiveFile();
     if (!file) {
-      el.setText("\uD65C\uC131 \uB178\uD2B8 \uC5C6\uC74C");
+      el.setText(t4("\uD65C\uC131 \uB178\uD2B8 \uC5C6\uC74C", "No active note"));
       el.removeClass("clippings-sidebar-hint-active");
       return;
     }
@@ -883,7 +894,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       el.setText(`\u2713 ${file.basename}`);
       el.addClass("clippings-sidebar-hint-active");
     } else {
-      el.setText("Clippings \uD3F4\uB354 \uB178\uD2B8\uB97C \uC5F4\uC5B4\uC8FC\uC138\uC694");
+      el.setText(t4("Clippings \uD3F4\uB354 \uB178\uD2B8\uB97C \uC5F4\uC5B4\uC8FC\uC138\uC694", "Please open a Clippings note"));
       el.removeClass("clippings-sidebar-hint-active");
     }
   }
@@ -896,7 +907,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
     if (history.length === 0) {
       this.historyListEl.createEl("div", {
         cls: "clippings-sidebar-empty",
-        text: "\uC544\uC9C1 \uC0DD\uC131 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4."
+        text: t4("\uC544\uC9C1 \uC0DD\uC131 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.", "No history yet.")
       });
       return;
     }
@@ -917,8 +928,7 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       cardMeta.createEl("span", { text: this.formatDate(item.date) });
       if (item.log && item.log.length > 0) {
         const logEl = card.createEl("div", { cls: "clippings-sidebar-card-log" });
-        const entries = item.log;
-        for (const entry of entries) {
+        for (const entry of item.log) {
           logEl.createEl("div", {
             cls: "clippings-sidebar-card-log-entry",
             text: entry
@@ -928,15 +938,15 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
       if (item.status === "error") {
         const copyBtn = card.createEl("button", {
           cls: "clippings-sidebar-card-copy-btn",
-          text: "\uB85C\uADF8 \uBCF5\uC0AC"
+          text: t4("\uB85C\uADF8 \uBCF5\uC0AC", "Copy Log")
         });
         copyBtn.addEventListener("click", () => {
           const logText = (item.log ?? []).join("\n");
           const full = logText ? logText + "\n" + (item.errorMsg ?? "") : item.errorMsg ?? "";
           navigator.clipboard.writeText(full).then(() => {
-            copyBtn.textContent = "\u2713 \uBCF5\uC0AC\uB428";
+            copyBtn.textContent = t4("\u2713 \uBCF5\uC0AC\uB428", "\u2713 Copied");
             setTimeout(() => {
-              copyBtn.textContent = "\uB85C\uADF8 \uBCF5\uC0AC";
+              copyBtn.textContent = t4("\uB85C\uADF8 \uBCF5\uC0AC", "Copy Log");
             }, 2e3);
           });
         });
@@ -965,9 +975,9 @@ var ClippingsSidebarView = class extends import_obsidian4.ItemView {
   formatDate(date) {
     const now = /* @__PURE__ */ new Date();
     const diff = now.getTime() - date.getTime();
-    if (diff < 6e4) return "\uBC29\uAE08 \uC804";
-    if (diff < 36e5) return `${Math.floor(diff / 6e4)}\uBD84 \uC804`;
-    if (diff < 864e5) return `${Math.floor(diff / 36e5)}\uC2DC\uAC04 \uC804`;
+    if (diff < 6e4) return t4("\uBC29\uAE08 \uC804", "Just now");
+    if (diff < 36e5) return isKorean4 ? `${Math.floor(diff / 6e4)}\uBD84 \uC804` : `${Math.floor(diff / 6e4)}m ago`;
+    if (diff < 864e5) return isKorean4 ? `${Math.floor(diff / 36e5)}\uC2DC\uAC04 \uC804` : `${Math.floor(diff / 36e5)}h ago`;
     return `${date.getMonth() + 1}/${date.getDate()}`;
   }
 };
