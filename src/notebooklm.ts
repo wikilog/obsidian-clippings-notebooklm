@@ -372,9 +372,9 @@ export class NotebookLMClient {
 				summary = "요약을 생성할 수 없습니다.";
 			}
 
-			// 4. 슬라이드 생성 시작 (NotebookLM Studio — 비동기, 최대 3회 재시도)
-			onProgress?.("4/5  슬라이드 생성 시작 중...\n(5분마다 상태 확인, 최대 20분 대기)");
-			let artifactId: string;
+			// 4. 슬라이드 생성 및 완료 대기 (NotebookLM Studio — 최대 3회 재시도)
+			onProgress?.("4/5  슬라이드 생성 시작 중...\n(1분마다 상태 확인, 최대 20분 대기)");
+			let artifactId = "";
 			{
 				const maxRetries = 3;
 				let lastErr: unknown;
@@ -395,9 +395,12 @@ export class NotebookLMClient {
 							],
 							{ timeout: 60000 }
 						);
-						artifactId = this.extractArtifactId(stdout);
-						if (!artifactId) throw new Error("Artifact ID를 찾을 수 없습니다");
-						onProgress?.("↳ 슬라이드 생성 시작됨 (ID: " + artifactId + ")");
+						const id = this.extractArtifactId(stdout);
+						if (!id) throw new Error("Artifact ID를 찾을 수 없습니다");
+						onProgress?.("↳ 슬라이드 생성 시작됨 (ID: " + id + ")");
+						await this.waitForArtifact(path, notebookId, id, onProgress);
+						artifactId = id;
+						onProgress?.("↳ 슬라이드 생성 완료!");
 						lastErr = null;
 						break;
 					} catch (error) {
@@ -407,10 +410,6 @@ export class NotebookLMClient {
 				}
 				if (lastErr) throw new Error("슬라이드 생성 실패: " + execDetail(lastErr));
 			}
-
-			// 4a. 슬라이드 완료 대기 (5분 간격 폴링, 최대 10분)
-			await this.waitForArtifact(path, notebookId, artifactId, onProgress);
-			onProgress?.("↳ 슬라이드 생성 완료!");
 
 			// 5. PDF 다운로드
 			onProgress?.("5/5  PDF 다운로드 중...");
@@ -531,9 +530,10 @@ export class NotebookLMClient {
 
 	/**
 	 * Studio artifact가 "completed" 상태가 될 때까지 폴링한다.
-	 * - 5분 간격으로 studio status --json 호출
-	 * - 30초마다 사이드바에 경과 시간 표시
-	 * - 최대 15분 대기 후 타임아웃
+	 * - 1분 간격으로 studio status --json 호출
+	 * - 1초마다 사이드바에 경과 시간 표시
+	 * - "failed" 또는 3회 연속 "unknown" 시 재시도 가능 에러를 throw
+	 * - 최대 20분 대기 후 타임아웃
 	 */
 	private async waitForArtifact(
 		path: string,
@@ -541,11 +541,12 @@ export class NotebookLMClient {
 		artifactId: string,
 		onProgress?: (message: string) => void
 	): Promise<void> {
-		const pollIntervalMs = 5 * 60 * 1000; // 5분마다 API 폴링
-		const maxWaitMs = 20 * 60 * 1000;     // 최대 20분 대기
-		const tickMs = 1000;                   // 1초마다 사이드바 업데이트
+		const pollIntervalMs = 60 * 1000;          // 1분마다 API 폴링
+		const maxWaitMs = 20 * 60 * 1000;          // 최대 20분 대기
+		const tickMs = 1000;                        // 1초마다 사이드바 업데이트
 		const startTime = Date.now();
-		let lastPollTime = Date.now();         // 첫 폴링은 5분 후
+		let lastPollTime = Date.now() - pollIntervalMs; // 즉시 첫 폴링
+		let unknownCount = 0;
 
 		while (true) {
 			await new Promise(r => setTimeout(r, tickMs));
@@ -556,7 +557,7 @@ export class NotebookLMClient {
 			const timeStr = `${mins}분 ${String(secs).padStart(2, "0")}초 경과`;
 
 			if (Date.now() - lastPollTime >= pollIntervalMs) {
-				// 5분마다 API 폴링
+				// 1분마다 API 폴링
 				try {
 					const { stdout: statusOut } = await execFileAsync(
 						path, ["studio", "status", notebookId, "--json"],
@@ -568,8 +569,22 @@ export class NotebookLMClient {
 						status = artifacts.find(a => a.id === artifactId)?.status ?? "unknown";
 					} catch { /* JSON 파싱 실패 */ }
 					lastPollTime = Date.now();
+
 					if (status === "completed") return;
-				} catch {
+					if (status === "failed") {
+						throw new Error("슬라이드 생성 실패 (failed 상태)");
+					}
+					if (status === "unknown") {
+						unknownCount++;
+						if (unknownCount >= 3) {
+							throw new Error(`슬라이드 상태 확인 불가 (${unknownCount}회 연속 unknown)`);
+						}
+					} else {
+						unknownCount = 0; // "generating" 등 정상 상태면 초기화
+					}
+				} catch (error) {
+					const msg = String(error);
+					if (msg.includes("실패") || msg.includes("확인 불가")) throw error;
 					lastPollTime = Date.now();
 				}
 			}

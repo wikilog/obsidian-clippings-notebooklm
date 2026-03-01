@@ -369,8 +369,8 @@ var NotebookLMClient = class {
         onProgress?.("\u21B3 \uC694\uC57D \uC2E4\uD328: " + execDetail(describeErr));
         summary = "\uC694\uC57D\uC744 \uC0DD\uC131\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.";
       }
-      onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(5\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 20\uBD84 \uB300\uAE30)");
-      let artifactId;
+      onProgress?.("4/5  \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791 \uC911...\n(1\uBD84\uB9C8\uB2E4 \uC0C1\uD0DC \uD655\uC778, \uCD5C\uB300 20\uBD84 \uB300\uAE30)");
+      let artifactId = "";
       {
         const maxRetries = 3;
         let lastErr;
@@ -398,9 +398,12 @@ var NotebookLMClient = class {
               ],
               { timeout: 6e4 }
             );
-            artifactId = this.extractArtifactId(stdout);
-            if (!artifactId) throw new Error("Artifact ID\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4");
-            onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791\uB428 (ID: " + artifactId + ")");
+            const id = this.extractArtifactId(stdout);
+            if (!id) throw new Error("Artifact ID\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4");
+            onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2DC\uC791\uB428 (ID: " + id + ")");
+            await this.waitForArtifact(path, notebookId, id, onProgress);
+            artifactId = id;
+            onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC644\uB8CC!");
             lastErr = null;
             break;
           } catch (error) {
@@ -410,8 +413,6 @@ var NotebookLMClient = class {
         }
         if (lastErr) throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328: " + execDetail(lastErr));
       }
-      await this.waitForArtifact(path, notebookId, artifactId, onProgress);
-      onProgress?.("\u21B3 \uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC644\uB8CC!");
       onProgress?.("5/5  PDF \uB2E4\uC6B4\uB85C\uB4DC \uC911...");
       const tmpPath = (0, import_path.join)((0, import_os.tmpdir)(), `nlm-${Date.now()}.pdf`);
       try {
@@ -511,16 +512,18 @@ ${text}`, "utf-8");
   }
   /**
    * Studio artifact가 "completed" 상태가 될 때까지 폴링한다.
-   * - 5분 간격으로 studio status --json 호출
-   * - 30초마다 사이드바에 경과 시간 표시
-   * - 최대 15분 대기 후 타임아웃
+   * - 1분 간격으로 studio status --json 호출
+   * - 1초마다 사이드바에 경과 시간 표시
+   * - "failed" 또는 3회 연속 "unknown" 시 재시도 가능 에러를 throw
+   * - 최대 20분 대기 후 타임아웃
    */
   async waitForArtifact(path, notebookId, artifactId, onProgress) {
-    const pollIntervalMs = 5 * 60 * 1e3;
+    const pollIntervalMs = 60 * 1e3;
     const maxWaitMs = 20 * 60 * 1e3;
     const tickMs = 1e3;
     const startTime = Date.now();
-    let lastPollTime = Date.now();
+    let lastPollTime = Date.now() - pollIntervalMs;
+    let unknownCount = 0;
     while (true) {
       await new Promise((r) => setTimeout(r, tickMs));
       const elapsed = Date.now() - startTime;
@@ -542,7 +545,20 @@ ${text}`, "utf-8");
           }
           lastPollTime = Date.now();
           if (status === "completed") return;
-        } catch {
+          if (status === "failed") {
+            throw new Error("\uC2AC\uB77C\uC774\uB4DC \uC0DD\uC131 \uC2E4\uD328 (failed \uC0C1\uD0DC)");
+          }
+          if (status === "unknown") {
+            unknownCount++;
+            if (unknownCount >= 3) {
+              throw new Error(`\uC2AC\uB77C\uC774\uB4DC \uC0C1\uD0DC \uD655\uC778 \uBD88\uAC00 (${unknownCount}\uD68C \uC5F0\uC18D unknown)`);
+            }
+          } else {
+            unknownCount = 0;
+          }
+        } catch (error) {
+          const msg = String(error);
+          if (msg.includes("\uC2E4\uD328") || msg.includes("\uD655\uC778 \uBD88\uAC00")) throw error;
           lastPollTime = Date.now();
         }
       }
